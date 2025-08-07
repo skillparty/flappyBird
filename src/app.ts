@@ -1,19 +1,37 @@
 import 'phaser';
-import { PHASER_CONFIG } from './config/GameConfig';
 import Boot from './scenes/Boot';
 import Preload from './scenes/Preload';
 import Menu from './scenes/Menu';
 import Game from './scenes/Game';
 import GameOver from './scenes/GameOver';
 
-// Enhanced Phaser configuration with scene management
-const gameConfig: Phaser.Types.Core.GameConfig = {
-  ...PHASER_CONFIG,
-  scene: [Boot, Preload, Menu, Game, GameOver]
+// Stable game configuration
+const config: Phaser.Types.Core.GameConfig = {
+  type: Phaser.AUTO,
+  width: 800,
+  height: 600,
+  parent: 'game-container',
+  backgroundColor: '#000000',
+  physics: {
+    default: 'arcade',
+    arcade: {
+      gravity: { y: 1200 },
+      debug: false
+    }
+  },
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH
+  },
+  scene: [Boot, Preload, Menu, Game, GameOver],
+  render: {
+    antialias: true,
+    pixelArt: false
+  }
 };
 
 // Initialize the game
-const game = new Phaser.Game(gameConfig);
+const game = new Phaser.Game(config);
 
 // Global error handling
 window.addEventListener('error', (event) => {

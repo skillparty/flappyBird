@@ -1,678 +1,424 @@
 import 'phaser';
-import Bird from '../components/Bird';
-import PipeManager from '../components/PipeManager';
-import ParallaxBackground from '../components/ParallaxBackground';
-import ScoreManager from '../managers/ScoreManager';
-import AssetManager from '../managers/AssetManager';
-import ErrorHandler from '../managers/ErrorHandler';
-import CollisionSystem, { CollisionResult } from '../systems/CollisionSystem';
-import GameOverSystem from '../systems/GameOverSystem';
-import PerformanceManager from '../systems/PerformanceManager';
-import ParticleEffects from '../effects/ParticleEffects';
-import { GAME_CONFIG, GAME_CONSTANTS } from '../config/GameConfig';
-import { BirdConfig } from '../types/GameTypes';
 
 export default class Game extends Phaser.Scene {
-  // Core game components
-  private bird!: Bird;
-  private pipeManager!: PipeManager;
-  private scoreManager!: ScoreManager;
-  private assetManager!: AssetManager;
-  private collisionSystem!: CollisionSystem;
-  private gameOverSystem!: GameOverSystem;
-  private performanceManager!: PerformanceManager;
-  
-  // Visual elements
-  private parallaxBackground!: ParallaxBackground;
+  // Core game objects
+  private bird!: Phaser.Physics.Arcade.Sprite;
+  private pipes!: Phaser.Physics.Arcade.Group;
   private ground!: Phaser.GameObjects.TileSprite;
-  private particleEffects!: ParticleEffects;
-  
-  // Game state
-  private isGameActive: boolean = false;
-  private isGameOver: boolean = false;
-  private gameStarted: boolean = false;
+  private background!: Phaser.GameObjects.Image;
+  private clouds!: Phaser.Physics.Arcade.Group;
   
   // UI elements
-  private startPrompt!: Phaser.GameObjects.Text;
-  private pauseButton!: Phaser.GameObjects.Text;
-  private isPaused: boolean = false;
+  private scoreText!: Phaser.GameObjects.Text;
+  private instructionText!: Phaser.GameObjects.Text;
+  
+  // Game state
+  private score: number = 0;
+  private gameStarted: boolean = false;
+  private gameOver: boolean = false;
+  private pipeTimer: number = 0;
+  private pipeDelay: number = 1800; // ms between pipes
 
   constructor() {
     super('Game');
   }
 
   create() {
-    try {
-      console.log('Game scene started');
-      
-      // Initialize managers and systems
-      this.initializeManagers();
-      this.initializeSystems();
-      
-      // Create visual elements
-      this.createBackground();
-      this.createGround();
-      
-      // Create particle effects
-      this.particleEffects = new ParticleEffects(this);
-      
-      // Create game objects
-      this.createBird();
-      this.createPipeManager();
-      
-      // Setup UI
-      this.setupUI();
-      
-      // Setup input handling
-      this.setupInput();
-      
-      // Setup physics
-      this.setupPhysics();
-      
-      // Reset game state
-      this.resetGameState();
-      
-      // Show start prompt
-      this.showStartPrompt();
-      
-      console.log('Game scene initialized successfully');
-      
-    } catch (error) {
-      ErrorHandler.handleSceneError(error as Error, 'Game');
-      this.createFallbackGame();
-    }
+    console.log('🎮 Game scene: Initializing stable game world...');
+    
+    // Reset game state
+    this.resetGameState();
+    
+    // Create stable game world
+    this.createBackground();
+    this.createClouds();
+    this.createGround();
+    this.createBird();
+    this.createPipes();
+    
+    // Setup UI
+    this.createUI();
+    
+    // Setup physics and collisions
+    this.setupPhysics();
+    
+    // Setup input
+    this.setupInput();
+    
+    console.log('✅ Game world created successfully');
   }
 
-  /**
-   * Initialize required managers
-   */
-  private initializeManagers(): void {
-    try {
-      this.scoreManager = ScoreManager.getInstance();
-      this.assetManager = AssetManager.getInstance(this);
-      
-      // Initialize audio manager
-      const AudioManager = require('../managers/AudioManager').default;
-      AudioManager.getInstance(this);
-      
-      // Initialize accessibility manager
-      const AccessibilityManager = require('../managers/AccessibilityManager').default;
-      AccessibilityManager.getInstance();
-    } catch (error) {
-      ErrorHandler.handleGameplayError(error as Error, 'game-managers-init');
-    }
+  private resetGameState(): void {
+    this.score = 0;
+    this.gameStarted = false;
+    this.gameOver = false;
+    this.pipeTimer = 0;
   }
 
-  /**
-   * Initialize game systems
-   */
-  private initializeSystems(): void {
-    try {
-      // Initialize systems (will be fully setup after game objects are created)
-      this.gameOverSystem = new GameOverSystem(this);
-      this.performanceManager = PerformanceManager.getInstance(this);
-      
-      // Setup game over callback
-      this.gameOverSystem.setOnGameOver((data) => {
-        this.handleGameOver(data);
-      });
-      
-    } catch (error) {
-      ErrorHandler.handleGameplayError(error as Error, 'game-systems-init');
-    }
-  }
-
-  /**
-   * Create animated parallax background
-   */
   private createBackground(): void {
-    try {
-      // Create parallax background system
-      this.parallaxBackground = new ParallaxBackground(this);
-      
-      console.log('Parallax background created');
-    } catch (error) {
-      ErrorHandler.handleGameplayError(error as Error, 'game-background');
-      
-      // Fallback: create simple background
-      this.createFallbackBackground();
-    }
+    // Static sky background
+    this.background = this.add.image(400, 300, 'background');
+    this.background.setDisplaySize(800, 600);
+    this.background.setDepth(-10);
   }
 
-  /**
-   * Create fallback background if parallax fails
-   */
-  private createFallbackBackground(): void {
-    try {
-      const centerX = this.cameras.main.width / 2;
-      const centerY = this.cameras.main.height / 2;
-      
-      const background = this.add.image(centerX, centerY, 
-        this.assetManager.getAssetKey('background')
+  private createClouds(): void {
+    // Create cloud group for parallax effect
+    this.clouds = this.physics.add.group();
+    
+    // Add some initial clouds
+    for (let i = 0; i < 3; i++) {
+      const cloud = this.clouds.create(
+        200 + i * 300, 
+        100 + Math.random() * 200, 
+        'cloud'
       );
-      
-      // Scale to fit screen
-      const scaleX = this.cameras.main.width / background.width;
-      const scaleY = this.cameras.main.height / background.height;
-      const scale = Math.max(scaleX, scaleY);
-      background.setScale(scale);
-      
-      background.setDepth(-10);
-      
-      console.log('Fallback background created');
-    } catch (error) {
-      ErrorHandler.handleGameplayError(error as Error, 'game-fallback-background');
+      cloud.setVelocityX(-20 - Math.random() * 10);
+      cloud.setAlpha(0.7);
+      cloud.setDepth(-5);
     }
   }
 
-  /**
-   * Create scrolling ground
-   */
   private createGround(): void {
-    try {
-      const groundY = GAME_CONFIG.visual.canvasHeight - GAME_CONSTANTS.GROUND_HEIGHT / 2;
-      
-      this.ground = this.add.tileSprite(
-        0, groundY,
-        GAME_CONFIG.visual.canvasWidth,
-        GAME_CONSTANTS.GROUND_HEIGHT,
-        this.assetManager.getAssetKey('ground')
-      );
-      
-      this.ground.setOrigin(0, 0.5);
-      this.ground.setDepth(5);
-      
-    } catch (error) {
-      ErrorHandler.handleGameplayError(error as Error, 'game-ground');
-    }
+    // Scrolling ground visual
+    this.ground = this.add.tileSprite(0, 540, 800, 60, 'ground');
+    this.ground.setOrigin(0, 0);
+    this.ground.setDepth(10);
+    
+    // Ground physics body (invisible collision) - completely static
+    const groundBody = this.physics.add.staticGroup();
+    const groundCollider = groundBody.create(400, 570, null);
+    groundCollider.setSize(800, 60);
+    groundCollider.setVisible(false);
+    groundCollider.refreshBody(); // Ensure static body is properly set
+    
+    // Store reference for collision detection
+    this.physics.world.on('worldbounds', () => {
+      // Handle world bounds collision
+    });
   }
 
-  /**
-   * Create bird with configuration
-   */
   private createBird(): void {
-    try {
-      // Get selected character texture
-      const CharacterSelector = require('../components/CharacterSelector').default;
-      const characterSelector = new CharacterSelector(this);
-      const selectedTexture = characterSelector.getSelectedTexture();
-      
-      const birdConfig: BirdConfig = {
-        x: GAME_CONSTANTS.BIRD_START_X,
-        y: GAME_CONSTANTS.BIRD_START_Y,
-        texture: selectedTexture,
-        jumpForce: GAME_CONFIG.physics.birdJumpForce,
-        maxRotation: 30
-      };
-      
-      this.bird = new Bird(this, birdConfig);
-      
-    } catch (error) {
-      ErrorHandler.handleGameplayError(error as Error, 'game-bird-creation');
-    }
+    // Create bird with stable physics
+    this.bird = this.physics.add.sprite(150, 300, 'bird');
+    this.bird.setScale(1);
+    this.bird.setDepth(5);
+    
+    // Configure bird physics for stable flight
+    this.bird.body.setSize(30, 20);
+    this.bird.body.setOffset(2, 2); // Center the collision box
+    this.bird.setCollideWorldBounds(false); // Allow bird to go off-screen for game over
+    
+    // Set realistic flight physics
+    this.bird.body.setDrag(0, 100); // Air resistance
+    this.bird.body.setMaxVelocity(300, 500); // Limit max speeds
+    this.bird.body.setBounce(0, 0); // No bouncing
+    
+    console.log('🐦 Bird created with stable physics');
   }
 
-  /**
-   * Create pipe manager
-   */
-  private createPipeManager(): void {
-    try {
-      this.pipeManager = new PipeManager(this, {
-        speed: GAME_CONFIG.physics.pipeSpeed,
-        gap: GAME_CONFIG.gameplay.pipeGap,
-        spawnInterval: GAME_CONFIG.gameplay.pipeSpawnInterval,
-        minHeight: 100,
-        maxHeight: 400
-      });
-      
-    } catch (error) {
-      ErrorHandler.handleGameplayError(error as Error, 'game-pipe-manager-creation');
-    }
+  private createPipes(): void {
+    // Create pipe group with custom physics settings
+    this.pipes = this.physics.add.group({
+      // Configure all pipes to be immovable and not affected by gravity
+      immovable: true,
+      allowGravity: false
+    });
   }
 
-  /**
-   * Setup UI elements
-   */
-  private setupUI(): void {
-    try {
-      // Initialize score display
-      this.scoreManager.initialize(this, GAME_CONFIG.visual.canvasWidth / 2, 50);
-      
-      // Create pause button
-      this.pauseButton = this.add.text(GAME_CONFIG.visual.canvasWidth - 50, 50, '⏸️', {
-        fontSize: '32px'
-      }).setOrigin(0.5);
-      
-      this.pauseButton.setDepth(100);
-      this.pauseButton.setInteractive({ useHandCursor: true });
-      this.pauseButton.on('pointerdown', () => this.togglePause());
-      
-    } catch (error) {
-      ErrorHandler.handleGameplayError(error as Error, 'game-ui-setup');
-    }
+  private createUI(): void {
+    // Score display
+    this.scoreText = this.add.text(400, 50, `Score: ${this.score}`, {
+      fontSize: '32px',
+      fontFamily: 'monospace',
+      color: '#FFFFFF',
+      stroke: '#000000',
+      strokeThickness: 4
+    });
+    this.scoreText.setOrigin(0.5);
+    this.scoreText.setDepth(20);
+
+    // Instructions
+    this.instructionText = this.add.text(400, 200, 
+      'SPACE or CLICK to jump\nAvoid the pipes!', {
+      fontSize: '24px',
+      fontFamily: 'monospace',
+      color: '#FFFFFF',
+      stroke: '#000000',
+      strokeThickness: 3,
+      align: 'center'
+    });
+    this.instructionText.setOrigin(0.5);
+    this.instructionText.setDepth(20);
   }
 
-  /**
-   * Setup input handling
-   */
-  private setupInput(): void {
-    try {
-      // Mouse/touch input
-      this.input.on('pointerdown', () => {
-        this.handleJumpInput();
-      });
-      
-      // Keyboard input
-      this.input.keyboard?.on('keydown-SPACE', () => {
-        this.handleJumpInput();
-      });
-      
-      // Pause key
-      this.input.keyboard?.on('keydown-ESC', () => {
-        this.togglePause();
-      });
-      
-    } catch (error) {
-      ErrorHandler.handleGameplayError(error as Error, 'game-input-setup');
-    }
-  }
-
-  /**
-   * Setup physics systems
-   */
   private setupPhysics(): void {
-    try {
-      // Initialize collision system after all game objects are created
-      this.collisionSystem = new CollisionSystem(this, this.bird, this.pipeManager);
-      
-      // Setup collision callback
-      this.collisionSystem.setOnCollision((result: CollisionResult) => {
-        this.handleCollision(result);
-      });
-      
-    } catch (error) {
-      ErrorHandler.handlePhysicsError(error as Error, 'game-physics-setup');
-    }
+    // Bird vs Ground collision
+    this.physics.add.overlap(this.bird, this.physics.world.staticBodies, () => {
+      this.handleGameOver();
+    });
+
+    // Bird vs Pipes collision
+    this.physics.add.overlap(this.bird, this.pipes, () => {
+      this.handleGameOver();
+    });
   }
 
-  /**
-   * Handle jump input
-   */
-  private handleJumpInput(): void {
-    try {
-      if (this.isPaused) return;
+  private setupInput(): void {
+    // Mouse/touch input
+    this.input.on('pointerdown', () => {
+      this.handleJump();
+    });
+
+    // Keyboard input
+    this.input.keyboard?.on('keydown-SPACE', () => {
+      this.handleJump();
+    });
+
+    // ESC to return to menu
+    this.input.keyboard?.on('keydown-ESC', () => {
+      this.scene.start('Menu');
+    });
+  }
+
+  private handleJump(): void {
+    if (this.gameOver) {
+      // Restart game
+      this.scene.restart();
+      return;
+    }
+
+    if (!this.gameStarted) {
+      this.startGame();
+    }
+
+    // Make bird jump
+    this.bird.setVelocityY(-350);
+    
+    // Rotate bird upward
+    this.tweens.killTweensOf(this.bird);
+    this.bird.setRotation(-0.3);
+  }
+
+  private startGame(): void {
+    this.gameStarted = true;
+    this.instructionText.setVisible(false);
+    
+    console.log('🚀 Game started!');
+  }
+
+  private generatePipe(): void {
+    if (this.gameOver) return;
+
+    const gapSize = 180;
+    const minPipeHeight = 100;
+    const maxPipeHeight = 400;
+    
+    // Random gap position
+    const gapY = Phaser.Math.Between(minPipeHeight + gapSize/2, maxPipeHeight - gapSize/2);
+    
+    // Top pipe - Create as static body (no physics)
+    const topPipe = this.pipes.create(850, gapY - gapSize/2, 'pipe');
+    topPipe.setOrigin(0.5, 1); // Bottom of sprite
+    topPipe.setFlipY(true);
+    topPipe.setDepth(1);
+    
+    // Remove physics body and make it purely kinematic
+    topPipe.body.setImmovable(true);
+    topPipe.body.setVelocityX(-200);
+    topPipe.body.setVelocityY(0); // Ensure no vertical movement
+    topPipe.body.setGravityY(-1200); // Cancel out world gravity
+    
+    // Bottom pipe - Create as static body (no physics)
+    const bottomPipe = this.pipes.create(850, gapY + gapSize/2, 'pipe');
+    bottomPipe.setOrigin(0.5, 0); // Top of sprite
+    bottomPipe.setDepth(1);
+    
+    // Remove physics body and make it purely kinematic
+    bottomPipe.body.setImmovable(true);
+    bottomPipe.body.setVelocityX(-200);
+    bottomPipe.body.setVelocityY(0); // Ensure no vertical movement
+    bottomPipe.body.setGravityY(-1200); // Cancel out world gravity
+    
+    // Mark pipes for scoring
+    topPipe.setData('scored', false);
+    bottomPipe.setData('scored', false);
+    
+    console.log('🏗️ Generated stable pipe pair at gap:', gapY);
+  }
+
+  private updatePipes(): void {
+    // Update and clean up pipes
+    this.pipes.children.entries.forEach((pipe: any) => {
+      // Ensure pipes maintain their horizontal movement only
+      if (pipe.body) {
+        pipe.body.setVelocityY(0); // Force no vertical movement
+        
+        // Ensure pipes stay at their intended position
+        if (Math.abs(pipe.body.velocity.x + 200) > 5) {
+          pipe.body.setVelocityX(-200); // Maintain consistent speed
+        }
+      }
       
-      if (!this.gameStarted) {
-        this.startGame();
+      // Remove off-screen pipes
+      if (pipe.x < -100) {
+        pipe.destroy();
         return;
       }
       
-      if (this.isGameActive && !this.isGameOver) {
-        this.bird.jump();
+      // Score when bird passes pipe
+      if (!pipe.getData('scored') && pipe.x < this.bird.x) {
+        pipe.setData('scored', true);
+        // Only count once per pipe pair (use top pipe)
+        if (pipe.flipY) { 
+          this.incrementScore();
+        }
       }
-      
-    } catch (error) {
-      ErrorHandler.handleGameplayError(error as Error, 'game-jump-input');
-    }
+    });
   }
 
-  /**
-   * Start the game
-   */
-  private startGame(): void {
-    try {
-      this.gameStarted = true;
-      this.isGameActive = true;
-      this.isGameOver = false;
-      
-      // Hide start prompt
-      if (this.startPrompt) {
-        this.startPrompt.setVisible(false);
+  private updateClouds(): void {
+    // Reset clouds that go off-screen
+    this.clouds.children.entries.forEach((cloud: any) => {
+      if (cloud.x < -100) {
+        cloud.x = 900;
+        cloud.y = 100 + Math.random() * 200;
       }
-      
-      // Initialize systems
-      this.gameOverSystem.initialize();
-      this.collisionSystem.activate();
-      
-      // Announce game start
-      try {
-        const AccessibilityManager = require('../managers/AccessibilityManager').default;
-        const accessibilityManager = AccessibilityManager.getInstance();
-        accessibilityManager.announceGameState('started');
-        accessibilityManager.updatePageTitle('Jugando', 0);
-      } catch (accessError) {
-        // Accessibility is optional
-      }
-      
-      console.log('Game started');
-      
-    } catch (error) {
-      ErrorHandler.handleGameplayError(error as Error, 'game-start');
-    }
+    });
   }
 
-  /**
-   * Show start prompt
-   */
-  private showStartPrompt(): void {
-    try {
-      const centerX = this.cameras.main.width / 2;
-      const centerY = this.cameras.main.height / 2;
+  private incrementScore(): void {
+    this.score++;
+    this.scoreText.setText(`Score: ${this.score}`);
+    
+    // Visual feedback
+    this.tweens.add({
+      targets: this.scoreText,
+      scaleX: 1.2,
+      scaleY: 1.2,
+      duration: 100,
+      yoyo: true,
+      ease: 'Power2'
+    });
+  }
+
+  private handleGameOver(): void {
+    if (this.gameOver) return;
+    
+    this.gameOver = true;
+    console.log('💀 Game Over! Score:', this.score);
+    
+    // Stop bird movement completely
+    this.bird.setVelocity(0, 0);
+    this.bird.body.setAcceleration(0, 0);
+    
+    // Stop all pipes completely
+    this.pipes.children.entries.forEach((pipe: any) => {
+      if (pipe.body) {
+        pipe.body.setVelocity(0, 0);
+        pipe.body.setAcceleration(0, 0);
+        pipe.body.setImmovable(true);
+      }
+    });
+    
+    // Show game over UI
+    this.showGameOverUI();
+  }
+
+  private showGameOverUI(): void {
+    // Game over text
+    const gameOverText = this.add.text(400, 250, 'GAME OVER', {
+      fontSize: '48px',
+      fontFamily: 'monospace',
+      color: '#FF0000',
+      stroke: '#000000',
+      strokeThickness: 4
+    });
+    gameOverText.setOrigin(0.5);
+    gameOverText.setDepth(25);
+    
+    // Final score
+    const finalScoreText = this.add.text(400, 320, `Final Score: ${this.score}`, {
+      fontSize: '24px',
+      fontFamily: 'monospace',
+      color: '#FFFFFF',
+      stroke: '#000000',
+      strokeThickness: 3
+    });
+    finalScoreText.setOrigin(0.5);
+    finalScoreText.setDepth(25);
+    
+    // Restart instruction
+    const restartText = this.add.text(400, 380, 'SPACE or CLICK to restart\nESC for menu', {
+      fontSize: '18px',
+      fontFamily: 'monospace',
+      color: '#FFFF00',
+      stroke: '#000000',
+      strokeThickness: 2,
+      align: 'center'
+    });
+    restartText.setOrigin(0.5);
+    restartText.setDepth(25);
+    
+    // Save high score
+    const highScore = parseInt(localStorage.getItem('flappyHighScore') || '0');
+    if (this.score > highScore) {
+      localStorage.setItem('flappyHighScore', this.score.toString());
       
-      this.startPrompt = this.add.text(centerX, centerY, 
-        'Haz clic o presiona ESPACIO\npara comenzar', {
-        fontSize: '24px',
-        fontFamily: 'Arial',
-        color: '#FFFFFF',
+      const newRecordText = this.add.text(400, 440, 'NEW HIGH SCORE!', {
+        fontSize: '20px',
+        fontFamily: 'monospace',
+        color: '#00FF00',
         stroke: '#000000',
-        strokeThickness: 3,
-        align: 'center',
-        lineSpacing: 5
-      }).setOrigin(0.5);
+        strokeThickness: 3
+      });
+      newRecordText.setOrigin(0.5);
+      newRecordText.setDepth(25);
       
-      this.startPrompt.setDepth(50);
-      
-      // Add blinking animation
+      // Celebration effect
       this.tweens.add({
-        targets: this.startPrompt,
-        alpha: 0.5,
-        duration: 1000,
-        ease: 'Sine.easeInOut',
+        targets: newRecordText,
+        scaleX: 1.1,
+        scaleY: 1.1,
+        duration: 500,
         yoyo: true,
-        repeat: -1
-      });
-      
-    } catch (error) {
-      ErrorHandler.handleGameplayError(error as Error, 'game-start-prompt');
-    }
-  }
-
-  /**
-   * Handle collision event
-   */
-  private handleCollision(result: CollisionResult): void {
-    try {
-      if (this.isGameOver) return;
-      
-      console.log('Collision detected:', result.collisionType);
-      
-      // Stop game
-      this.isGameActive = false;
-      this.isGameOver = true;
-      
-      // Handle collision in collision system
-      this.collisionSystem.handleCollision(result);
-      
-      // Trigger game over sequence
-      this.gameOverSystem.triggerGameOver(result);
-      
-    } catch (error) {
-      ErrorHandler.handleGameplayError(error as Error, 'game-collision-handling');
-    }
-  }
-
-  /**
-   * Handle game over
-   */
-  private handleGameOver(data: any): void {
-    try {
-      console.log('Game over with data:', data);
-      
-      // Update page title for accessibility
-      try {
-        const AccessibilityManager = require('../managers/AccessibilityManager').default;
-        const accessibilityManager = AccessibilityManager.getInstance();
-        accessibilityManager.announceGameState('over', `Puntuación final: ${data.finalScore}`);
-        accessibilityManager.updatePageTitle('Game Over', data.finalScore);
-      } catch (accessError) {
-        // Accessibility is optional
-      }
-      
-      // Smooth transition to game over scene
-      this.cameras.main.fadeOut(500, 0, 0, 0);
-      
-      this.cameras.main.once('camerafadeoutcomplete', () => {
-        this.scene.start('GameOver', {
-          score: data.finalScore,
-          isNewHighScore: data.isNewHighScore
-        });
-      });
-      
-    } catch (error) {
-      ErrorHandler.handleSceneError(error as Error, 'Game-game-over');
-      // Fallback: direct transition
-      this.scene.start('GameOver', {
-        score: data.finalScore || 0,
-        isNewHighScore: data.isNewHighScore || false
+        repeat: -1,
+        ease: 'Sine.easeInOut'
       });
     }
   }
 
-  /**
-   * Toggle pause state
-   */
-  private togglePause(): void {
-    try {
-      if (!this.gameStarted || this.isGameOver) return;
-      
-      this.isPaused = !this.isPaused;
-      
-      if (this.isPaused) {
-        this.physics.pause();
-        this.pauseButton.setText('▶️');
-        
-        // Pause parallax background
-        if (this.parallaxBackground) {
-          this.parallaxBackground.pause();
-        }
-        
-        // Show pause overlay
-        this.showPauseOverlay();
-      } else {
-        this.physics.resume();
-        this.pauseButton.setText('⏸️');
-        
-        // Resume parallax background
-        if (this.parallaxBackground) {
-          this.parallaxBackground.resume();
-        }
-        
-        // Hide pause overlay
-        this.hidePauseOverlay();
-      }
-      
-    } catch (error) {
-      ErrorHandler.handleGameplayError(error as Error, 'game-pause-toggle');
-    }
-  }
-
-  /**
-   * Show pause overlay
-   */
-  private showPauseOverlay(): void {
-    try {
-      const centerX = this.cameras.main.width / 2;
-      const centerY = this.cameras.main.height / 2;
-      
-      const pauseOverlay = this.add.rectangle(
-        centerX, centerY,
-        this.cameras.main.width,
-        this.cameras.main.height,
-        0x000000,
-        0.5
-      );
-      pauseOverlay.setDepth(75);
-      pauseOverlay.setData('pauseElement', true);
-      
-      const pauseText = this.add.text(centerX, centerY, 'PAUSA', {
-        fontSize: '48px',
-        fontFamily: 'Arial',
-        color: '#FFFFFF',
-        stroke: '#000000',
-        strokeThickness: 4
-      }).setOrigin(0.5);
-      pauseText.setDepth(76);
-      pauseText.setData('pauseElement', true);
-      
-    } catch (error) {
-      ErrorHandler.handleGameplayError(error as Error, 'game-pause-overlay');
-    }
-  }
-
-  /**
-   * Hide pause overlay
-   */
-  private hidePauseOverlay(): void {
-    try {
-      // Remove all pause elements
-      this.children.list.forEach(child => {
-        if (child.getData('pauseElement')) {
-          child.destroy();
-        }
-      });
-    } catch (error) {
-      ErrorHandler.handleGameplayError(error as Error, 'game-pause-overlay-hide');
-    }
-  }
-
-  /**
-   * Reset game state
-   */
-  private resetGameState(): void {
-    try {
-      this.isGameActive = false;
-      this.isGameOver = false;
-      this.gameStarted = false;
-      this.isPaused = false;
-      
-      // Reset score
-      this.scoreManager.reset();
-      
-      // Reset bird
-      if (this.bird) {
-        this.bird.reset();
-      }
-      
-      // Reset pipe manager
-      if (this.pipeManager) {
-        this.pipeManager.reset();
-      }
-      
-      // Reset parallax background
-      if (this.parallaxBackground) {
-        this.parallaxBackground.reset();
-      }
-      
-    } catch (error) {
-      ErrorHandler.handleGameplayError(error as Error, 'game-state-reset');
-    }
-  }
-
-  /**
-   * Main game update loop
-   */
   update(time: number, delta: number): void {
-    try {
-      // Monitor performance
-      ErrorHandler.monitorPerformance(this);
-      this.performanceManager.monitorAndOptimize();
-      
-      if (this.isPaused || !this.gameStarted) return;
-      
-      // Update parallax background
-      if (this.parallaxBackground && this.isGameActive) {
-        this.parallaxBackground.update();
-      }
-      
-      // Update ground scrolling
-      if (this.ground && this.isGameActive) {
-        this.ground.tilePositionX += 3;
-      }
-      
-      // Update bird
-      if (this.bird && this.isGameActive) {
-        this.bird.update();
-      }
-      
-      // Update pipe manager
-      if (this.pipeManager && this.isGameActive) {
-        this.pipeManager.updatePipes();
-        
-        // Check for scoring
-        if (this.pipeManager.checkScoring(this.bird)) {
-          this.scoreManager.increment();
-          
-          // Create score effect
-          if (this.particleEffects) {
-            this.particleEffects.createScoreEffect(this.bird.x + 50, this.bird.y);
-          }
-        }
-      }
-      
-      // Check collisions
-      if (this.collisionSystem && this.isGameActive && !this.isGameOver) {
-        const collisionResult = this.collisionSystem.checkCollisions();
-        if (collisionResult.hasCollision) {
-          this.handleCollision(collisionResult);
-        }
-      }
-      
-    } catch (error) {
-      ErrorHandler.handleGameplayError(error as Error, 'game-update-loop');
+    if (this.gameOver) return;
+    
+    // Update ground scrolling
+    this.ground.tilePositionX += 2;
+    
+    // Update clouds
+    this.updateClouds();
+    
+    if (!this.gameStarted) return;
+    
+    // Bird rotation based on velocity
+    if (this.bird.body.velocity.y > 0) {
+      // Falling - rotate downward
+      this.bird.setRotation(Math.min(1.5, this.bird.body.velocity.y * 0.003));
     }
-  }
-
-  /**
-   * Create fallback game if main creation fails
-   */
-  private createFallbackGame(): void {
-    try {
-      console.warn('Creating fallback game due to initialization error');
-      
-      // Simple background
-      this.add.rectangle(400, 300, 800, 600, 0x87CEEB);
-      
-      // Simple error message
-      this.add.text(400, 300, 'Error al cargar el juego\nPresiona ESPACIO para continuar', {
-        fontSize: '24px',
-        color: '#FFFFFF',
-        align: 'center'
-      }).setOrigin(0.5);
-      
-      // Simple input to return to menu
-      this.input.keyboard?.on('keydown-SPACE', () => {
-        this.scene.start('Menu');
-      });
-      
-    } catch (error) {
-      ErrorHandler.handleSceneError(error as Error, 'Game-fallback');
+    
+    // Check if bird is out of bounds
+    if (this.bird.y > 600 || this.bird.y < -50) {
+      this.handleGameOver();
+      return;
     }
-  }
-
-  /**
-   * Cleanup when scene is destroyed
-   */
-  destroy(): void {
-    try {
-      // Cleanup systems
-      if (this.collisionSystem) {
-        this.collisionSystem.destroy();
-      }
-      
-      if (this.gameOverSystem) {
-        this.gameOverSystem.destroy();
-      }
-      
-      if (this.pipeManager) {
-        this.pipeManager.destroy();
-      }
-      
-      // Cleanup score manager
-      this.scoreManager.cleanup();
-      
-      super.destroy();
-    } catch (error) {
-      ErrorHandler.handleGameplayError(error as Error, 'game-destroy');
+    
+    // Generate pipes
+    this.pipeTimer += delta;
+    if (this.pipeTimer > this.pipeDelay) {
+      this.generatePipe();
+      this.pipeTimer = 0;
     }
+    
+    // Update pipes
+    this.updatePipes();
   }
 }

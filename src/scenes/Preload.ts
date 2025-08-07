@@ -1,168 +1,141 @@
 import 'phaser';
-import AssetManager from '../managers/AssetManager';
-import ErrorHandler from '../managers/ErrorHandler';
 
 export default class Preload extends Phaser.Scene {
-  private assetManager!: AssetManager;
   private loadingText!: Phaser.GameObjects.Text;
-  private progressBar!: Phaser.GameObjects.Graphics;
-  private progressBox!: Phaser.GameObjects.Graphics;
 
   constructor() {
     super('Preload');
   }
 
   preload() {
-    console.log('Preload scene started');
+    console.log('🎮 Preload scene: Creating game assets...');
     
-    try {
-      // Initialize asset manager
-      this.assetManager = AssetManager.getInstance(this);
-      
-      // Create loading UI
-      this.createLoadingUI();
-      
-      // Setup progress tracking
-      this.setupProgressTracking();
-      
-      // Create fallback assets immediately for essential gameplay
-      this.assetManager.preloadEssentialAssets();
-      
-      // Load all assets
-      this.assetManager.loadAssets()
-        .then(() => {
-          console.log('Asset loading completed successfully');
-          this.completeLoading();
-        })
-        .catch((error) => {
-          console.warn('Asset loading failed, using fallbacks:', error);
-          ErrorHandler.handleAssetError(error, 'preload-general');
-          this.completeLoading(); // Continue with fallbacks
-        });
+    // Create terminal-style loading screen
+    this.createTerminalLoadingScreen();
+    
+    // Create stable game assets
+    this.createGameAssets();
+  }
+
+  private createTerminalLoadingScreen(): void {
+    // Terminal background
+    this.add.rectangle(400, 300, 800, 600, 0x000000);
+    
+    // Terminal loading text
+    this.loadingText = this.add.text(50, 50, '', {
+      fontSize: '16px',
+      fontFamily: 'monospace',
+      color: '#00FF00'
+    });
+    
+    // Simulate terminal loading
+    this.simulateTerminalLoading();
+  }
+
+  private simulateTerminalLoading(): void {
+    const loadingMessages = [
+      'skillparty@flappybird:~$ initializing game systems...',
+      'Loading assets... [████████████████████] 100%',
+      'Configuring physics engine... OK',
+      'Setting up game world... OK',
+      'Preparing bird mechanics... OK',
+      'Generating pipe obstacles... OK',
+      'Initializing collision detection... OK',
+      'Loading complete. Starting game...',
+      '',
+      'Press any key to continue...'
+    ];
+
+    let currentLine = 0;
+    const typeSpeed = 50;
+
+    const typeNextLine = () => {
+      if (currentLine < loadingMessages.length) {
+        const message = loadingMessages[currentLine];
+        let currentChar = 0;
         
-    } catch (error) {
-      console.error('Critical error in preload:', error);
-      ErrorHandler.handleSceneError(error as Error, 'Preload');
-      
-      // Create minimal fallback assets and continue
-      this.createMinimalAssets();
-      this.completeLoading();
-    }
+        const typeLine = () => {
+          if (currentChar <= message.length) {
+            const currentText = this.loadingText.text + message.substring(currentChar - 1, currentChar);
+            this.loadingText.setText(this.loadingText.text + (currentChar === 0 ? '' : message[currentChar - 1]));
+            currentChar++;
+            
+            if (currentChar <= message.length) {
+              this.time.delayedCall(typeSpeed, typeLine);
+            } else {
+              this.loadingText.setText(this.loadingText.text + '\n');
+              currentLine++;
+              this.time.delayedCall(200, typeNextLine);
+            }
+          }
+        };
+        
+        typeLine();
+      } else {
+        // Loading complete, wait for input or auto-continue
+        this.time.delayedCall(1000, () => {
+          this.scene.start('Menu');
+        });
+      }
+    };
+
+    typeNextLine();
   }
 
-  /**
-   * Create loading screen UI
-   */
-  private createLoadingUI(): void {
-    const centerX = this.cameras.main.width / 2;
-    const centerY = this.cameras.main.height / 2;
-
-    // Background
-    this.add.rectangle(centerX, centerY, 800, 600, 0x87CEEB);
-
-    // Title
-    this.add.text(centerX, centerY - 100, 'Flappy Bird', {
-      fontSize: '48px',
-      fontFamily: 'Arial',
-      color: '#FFFFFF',
-      stroke: '#000000',
-      strokeThickness: 4
-    }).setOrigin(0.5);
-
-    // Loading text
-    this.loadingText = this.add.text(centerX, centerY + 50, 'Cargando... 0%', {
-      fontSize: '24px',
-      fontFamily: 'Arial',
-      color: '#FFFFFF'
-    }).setOrigin(0.5);
-
-    // Progress bar background
-    this.progressBox = this.add.graphics();
-    this.progressBox.fillStyle(0x222222);
-    this.progressBox.fillRect(centerX - 160, centerY + 80, 320, 20);
-
-    // Progress bar
-    this.progressBar = this.add.graphics();
-  }
-
-  /**
-   * Setup progress tracking for visual feedback
-   */
-  private setupProgressTracking(): void {
-    this.load.on('progress', (progress: number) => {
-      this.updateProgressBar(progress);
-    });
-
-    this.load.on('fileload', (file: any) => {
-      console.log(`Loaded: ${file.key}`);
-    });
-
-    this.load.on('loaderror', (file: any) => {
-      console.warn(`Failed to load: ${file.key}`);
-      ErrorHandler.handleAssetError(new Error(`Failed to load ${file.key}`), file.key);
-    });
-  }
-
-  /**
-   * Update progress bar visual
-   */
-  private updateProgressBar(progress: number): void {
-    const centerX = this.cameras.main.width / 2;
-    const centerY = this.cameras.main.height / 2;
-
-    // Update progress bar
-    this.progressBar.clear();
-    this.progressBar.fillStyle(0x00FF00);
-    this.progressBar.fillRect(centerX - 158, centerY + 82, 316 * progress, 16);
-
-    // Update loading text
-    this.loadingText.setText(`Cargando... ${Math.round(progress * 100)}%`);
-  }
-
-  /**
-   * Complete loading and transition to menu
-   */
-  private completeLoading(): void {
-    // Hide HTML loading indicator
-    this.assetManager.hideLoadingIndicator();
-    
-    // Small delay for smooth transition
-    this.time.delayedCall(500, () => {
-      console.log('Preload complete - starting Menu scene');
-      this.scene.start('Menu');
-    });
-  }
-
-  /**
-   * Create minimal assets as ultimate fallback
-   */
-  private createMinimalAssets(): void {
+  private createGameAssets(): void {
     const graphics = this.add.graphics();
     
-    try {
-      // Essential game sprites
-      graphics.fillStyle(0xFFD700);
-      graphics.fillRect(0, 0, 32, 24);
-      graphics.generateTexture('bird', 32, 24);
-      
-      graphics.fillStyle(0x228B22);
-      graphics.fillRect(0, 0, 52, 320);
-      graphics.generateTexture('pipe', 52, 320);
-      
-      graphics.fillStyle(0x87CEEB);
-      graphics.fillRect(0, 0, 800, 600);
-      graphics.generateTexture('background', 800, 600);
-      
-      graphics.fillStyle(0x8B4513);
-      graphics.fillRect(0, 0, 800, 50);
-      graphics.generateTexture('ground', 800, 50);
-      
-      console.log('Minimal fallback assets created');
-    } catch (error) {
-      console.error('Failed to create minimal assets:', error);
-      ErrorHandler.handleAssetError(error as Error, 'minimal-assets');
-    } finally {
-      graphics.destroy();
+    // Create stable, high-quality sprites
+    
+    // Bird - Golden with better proportions
+    graphics.fillStyle(0xFFD700);
+    graphics.fillRoundedRect(0, 0, 34, 24, 4);
+    graphics.fillStyle(0xFFA500);
+    graphics.fillCircle(8, 12, 3); // Eye
+    graphics.fillStyle(0xFF8C00);
+    graphics.fillTriangle(0, 12, -6, 8, -6, 16); // Beak
+    graphics.generateTexture('bird', 34, 24);
+    
+    // Pipe - More detailed green pipe
+    graphics.clear();
+    graphics.fillStyle(0x228B22);
+    graphics.fillRect(0, 0, 60, 400);
+    graphics.fillStyle(0x32CD32);
+    graphics.fillRect(5, 0, 50, 400);
+    graphics.fillStyle(0x228B22);
+    graphics.fillRect(-10, -20, 80, 40); // Pipe cap
+    graphics.generateTexture('pipe', 80, 420);
+    
+    // Ground - Textured ground
+    graphics.clear();
+    graphics.fillStyle(0x8B4513);
+    graphics.fillRect(0, 0, 800, 60);
+    graphics.fillStyle(0xA0522D);
+    for (let i = 0; i < 800; i += 20) {
+      graphics.fillRect(i, 0, 18, 60);
     }
+    graphics.generateTexture('ground', 800, 60);
+    
+    // Background - Simple sky blue
+    graphics.clear();
+    graphics.fillStyle(0x87CEEB);
+    graphics.fillRect(0, 0, 800, 600);
+    graphics.generateTexture('background', 800, 600);
+    
+    // Cloud sprites for parallax
+    graphics.clear();
+    graphics.fillStyle(0xFFFFFF, 0.8);
+    graphics.fillCircle(30, 30, 20);
+    graphics.fillCircle(50, 25, 25);
+    graphics.fillCircle(70, 30, 20);
+    graphics.generateTexture('cloud', 100, 60);
+    
+    graphics.destroy();
+    
+    console.log('✅ Game assets created successfully');
+  }
+
+  create() {
+    // Assets are created in preload, just transition
   }
 }

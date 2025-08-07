@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Flappy Bird - Terminal Edition by skillparty</title>
+  <meta name="description" content="A professional Flappy Bird clone with Ubuntu terminal-style interface built with Phaser 3 and TypeScript">
+  <meta name="keywords" content="flappy bird, terminal, ubuntu, phaser, typescript, skillparty">
+  <meta name="author" content="skillparty">
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Flappy Bird - Terminal Edition">
+  <meta property="og:description" content="Professional Flappy Bird with terminal interface">
+  
+  <!-- Terminal theme -->
+  <meta name="theme-color" content="#000000">
+  
+  <link rel="stylesheet" href="/src/index.css">
+</head>
+<body class="bg-black text-green-400 flex justify-center items-center min-h-screen p-4 font-mono">
+  <!-- Skip to main content link for screen readers -->
+  <a href="#game-container" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-4 py-2 rounded z-50">
+    Saltar al juego
+  </a>
+  
+  <div class="game-wrapper w-full max-w-4xl mx-auto" role="main">
+    <!-- Terminal header -->
+    <header class="text-center mb-4">
+      <h1 class="text-2xl md:text-3xl font-bold text-orange-400 mb-2">
+        ┌─ Flappy Bird Terminal Edition ─┐
+        <span class="sr-only">- Terminal game interface</span>
+      </h1>
+      <p class="text-green-400 text-sm md:text-base font-mono" id="game-instructions">
+        skillparty@ubuntu:~$ ./flappy-bird --start
+      </p>
+    </header>
+    
+    <!-- Terminal game container -->
+    <div 
+      id="game-container" 
+      class="game-container relative mx-auto bg-black border-2 border-gray-600 rounded shadow-2xl overflow-hidden"
+      role="application"
+      aria-label="Terminal Flappy Bird Game"
+      aria-describedby="game-instructions game-controls"
+      tabindex="0"
+    >
+      <!-- Terminal loading indicator -->
+      <div 
+        id="loading-indicator" 
+        class="absolute inset-0 flex items-center justify-center bg-black z-10"
+        role="status"
+        aria-live="polite"
+      >
+        <div class="text-center font-mono">
+          <div class="text-green-400 mb-4">
+            <span class="animate-pulse">█</span>
+            <span class="animate-pulse" style="animation-delay: 0.2s">█</span>
+            <span class="animate-pulse" style="animation-delay: 0.4s">█</span>
+          </div>
+          <p class="text-green-400 font-mono">skillparty@ubuntu:~$ loading...</p>
+          <span class="sr-only">Terminal game loading, please wait</span>
+        </div>
+      </div>
+      
+      <!-- UI overlay for additional elements -->
+      <div id="ui-overlay" class="ui-overlay" aria-live="polite">
+        <!-- Dynamic UI elements will be added here -->
+      </div>
+      
+      <!-- Screen reader game state announcements -->
+      <div id="game-announcements" class="sr-only" aria-live="assertive" aria-atomic="true">
+        <!-- Game state changes will be announced here -->
+      </div>
+    </div>
+    
+    <!-- Terminal footer -->
+    <footer class="text-center mt-4 text-green-600 text-xs md:text-sm font-mono">
+      <div id="game-controls">
+        <p>└─ Controls: SPACE/CLICK to jump | ESC for menu ─┘</p>
+        <p class="mt-1 text-gray-500">Terminal interface optimized for keyboard navigation</p>
+      </div>
+      
+      <!-- System info -->
+      <details class="mt-2 text-left max-w-md mx-auto">
+        <summary class="cursor-pointer text-gray-400 hover:text-green-400 text-xs">
+          System Information
+        </summary>
+        <div class="mt-2 text-xs text-gray-500 space-y-1 font-mono">
+          <p>• OS: Ubuntu Terminal Emulation</p>
+          <p>• Engine: Phaser 3 + TypeScript</p>
+          <p>• Author: skillparty</p>
+          <p>• Build: Stable Physics Engine</p>
+          <p>• Accessibility: Full keyboard support</p>
+        </div>
+      </details>
+    </footer>
+  </div>
+  
+  <!-- Screen reader instructions -->
+  <div class="sr-only">
+    <h2>Instrucciones para lectores de pantalla</h2>
+    <p>Este es un juego de Flappy Bird donde controlas un pájaro que debe evitar obstáculos.</p>
+    <p>Usa la tecla ESPACIO o ENTER para hacer que el pájaro salte.</p>
+    <p>El objetivo es pasar por tantos tubos como sea posible sin chocar.</p>
+    <p>Tu puntuación y el estado del juego se anunciarán automáticamente.</p>
+  </div>
+  
+  <script type="module" src="/src/app.ts"></script>
+</body>
+</html>

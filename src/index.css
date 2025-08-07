@@ -1,175 +1,89 @@
+/* Import fonts for terminal-style interface */
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu+Mono:wght@400;700&family=Fira+Code:wght@300;400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Import Google Fonts for better typography */
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600;700&display=swap');
-
-@layer base {
-  body {
-    margin: 0;
-    font-family: 'Inter', sans-serif;
-    overflow-x: hidden;
-  }
-  
-  h1, h2, h3 {
-    font-family: 'Press Start 2P', cursive;
-  }
+body {
+  margin: 0;
+  font-family: 'Ubuntu Mono', 'Fira Code', monospace;
+  overflow-x: hidden;
+  background: #000000;
+  color: #00FF00;
 }
 
-@layer components {
-  /* Game container responsive design */
-  .game-container {
-    @apply w-full aspect-[4/3] md:aspect-[16/10];
-    @apply bg-gradient-to-b from-sky-400 to-sky-600;
-    @apply rounded-lg shadow-2xl overflow-hidden;
-    max-width: 800px;
-    max-height: 600px;
-  }
-  
-  /* UI overlay for additional elements */
-  .ui-overlay {
-    @apply absolute inset-0 pointer-events-none;
-    @apply flex flex-col items-center justify-center;
-    @apply text-white font-bold;
-  }
-  
-  /* Game button styles */
-  .game-button {
-    @apply px-6 py-3 bg-green-600 hover:bg-green-700;
-    @apply text-white font-semibold rounded-lg;
-    @apply transition-all duration-200 ease-in-out;
-    @apply shadow-lg hover:shadow-xl;
-    @apply transform hover:scale-105 active:scale-95;
-    @apply cursor-pointer select-none;
-  }
-  
-  /* Score display styles */
-  .score-display {
-    @apply text-white font-bold text-shadow;
-    @apply drop-shadow-lg;
-  }
-  
-  /* Loading animation */
-  .loading-spinner {
-    @apply animate-spin rounded-full border-2 border-white border-t-transparent;
-  }
+h1, h2, h3 {
+  font-family: 'Ubuntu Mono', monospace;
 }
 
-@layer utilities {
-  /* Text shadow utility */
-  .text-shadow {
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-  }
-  
-  /* Pixel perfect rendering for game sprites */
-  .pixel-perfect {
-    image-rendering: -moz-crisp-edges;
-    image-rendering: -webkit-crisp-edges;
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
-  }
-  
-  /* Disable text selection for game elements */
-  .no-select {
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-  }
+/* Terminal-style game container */
+.game-container {
+  width: 800px;
+  height: 600px;
+  max-width: 90vw;
+  max-height: 70vh;
+  background: #000000;
+  border: 2px solid #333333;
+  border-radius: 8px;
+  box-shadow: 
+    0 0 20px rgba(0, 255, 0, 0.3),
+    inset 0 0 20px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  position: relative;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .game-container {
-    @apply aspect-square;
-    max-width: 90vw;
-    max-height: 90vh;
-  }
-  
-  .game-wrapper h1 {
-    @apply text-3xl;
-  }
-  
-  .game-wrapper p {
-    @apply text-xs;
-  }
+.game-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 30px;
+  background: linear-gradient(to bottom, #2D2D2D, #1A1A1A);
+  border-bottom: 1px solid #333;
+  z-index: 1000;
 }
 
-@media (max-width: 480px) {
-  .game-container {
-    @apply aspect-[3/4];
-    max-width: 95vw;
-    max-height: 70vh;
-  }
-  
-  .game-wrapper h1 {
-    @apply text-2xl mb-1;
-  }
-  
-  .game-wrapper p {
-    @apply text-xs;
-  }
-  
-  .game-wrapper .text-center.mt-4 {
-    @apply mt-2;
-  }
+/* UI overlay for additional elements */
+.ui-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
 }
 
-/* Landscape orientation on mobile */
-@media (max-width: 768px) and (orientation: landscape) {
-  .game-container {
-    @apply aspect-[16/10];
-    max-height: 80vh;
-  }
-  
-  .game-wrapper h1 {
-    @apply text-2xl mb-1;
-  }
-  
-  .game-wrapper .mb-4 {
-    @apply mb-2;
-  }
+/* Game button styles */
+.game-button {
+  padding: 0.75rem 1.5rem;
+  background-color: #16a34a;
+  color: white;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  user-select: none;
+  border: none;
 }
 
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-  .game-container {
-    @apply border-4 border-white;
-  }
-  
-  .game-button {
-    @apply border-2 border-white;
-  }
-  
-  body {
-    @apply bg-black text-white;
-  }
+.game-button:hover {
+  background-color: #15803d;
+  transform: scale(1.05);
 }
 
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-  .game-button {
-    @apply transform-none;
-    transition: none !important;
-  }
-  
-  .loading-spinner {
-    @apply animate-none;
-  }
-  
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
+.game-button:active {
+  transform: scale(0.95);
 }
 
-/* Focus styles for accessibility */
-.game-button:focus,
-button:focus,
-[role="button"]:focus {
-  @apply outline-none ring-4 ring-blue-500 ring-opacity-50;
+/* Text shadow utility */
+.text-shadow {
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 /* Screen reader only content */
@@ -185,36 +99,33 @@ button:focus,
   border: 0;
 }
 
-/* High contrast text */
-@media (prefers-contrast: high) {
-  .text-white {
-    color: #ffffff !important;
+/* Focus styles for accessibility */
+.game-button:focus,
+button:focus,
+[role="button"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .game-container {
+    width: 95vw;
+    height: 70vh;
   }
   
-  .text-black {
-    color: #000000 !important;
+  h1 {
+    font-size: 2rem;
   }
 }
 
-/* Large text support */
-@media (min-resolution: 2dppx) {
+@media (max-width: 480px) {
   .game-container {
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: crisp-edges;
-  }
-}
-
-/* Print styles */
-@media print {
-  .game-container {
-    display: none;
+    width: 98vw;
+    height: 65vh;
   }
   
-  body::after {
-    content: "Flappy Bird - Un juego web interactivo. Visita la página web para jugar.";
-    display: block;
-    text-align: center;
-    font-size: 18px;
-    margin-top: 50px;
+  h1 {
+    font-size: 1.5rem;
   }
 }
