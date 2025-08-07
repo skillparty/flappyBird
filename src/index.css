@@ -1,0 +1,220 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import Google Fonts for better typography */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600;700&display=swap');
+
+@layer base {
+  body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+  }
+  
+  h1, h2, h3 {
+    font-family: 'Press Start 2P', cursive;
+  }
+}
+
+@layer components {
+  /* Game container responsive design */
+  .game-container {
+    @apply w-full aspect-[4/3] md:aspect-[16/10];
+    @apply bg-gradient-to-b from-sky-400 to-sky-600;
+    @apply rounded-lg shadow-2xl overflow-hidden;
+    max-width: 800px;
+    max-height: 600px;
+  }
+  
+  /* UI overlay for additional elements */
+  .ui-overlay {
+    @apply absolute inset-0 pointer-events-none;
+    @apply flex flex-col items-center justify-center;
+    @apply text-white font-bold;
+  }
+  
+  /* Game button styles */
+  .game-button {
+    @apply px-6 py-3 bg-green-600 hover:bg-green-700;
+    @apply text-white font-semibold rounded-lg;
+    @apply transition-all duration-200 ease-in-out;
+    @apply shadow-lg hover:shadow-xl;
+    @apply transform hover:scale-105 active:scale-95;
+    @apply cursor-pointer select-none;
+  }
+  
+  /* Score display styles */
+  .score-display {
+    @apply text-white font-bold text-shadow;
+    @apply drop-shadow-lg;
+  }
+  
+  /* Loading animation */
+  .loading-spinner {
+    @apply animate-spin rounded-full border-2 border-white border-t-transparent;
+  }
+}
+
+@layer utilities {
+  /* Text shadow utility */
+  .text-shadow {
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  }
+  
+  /* Pixel perfect rendering for game sprites */
+  .pixel-perfect {
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -webkit-crisp-edges;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+  
+  /* Disable text selection for game elements */
+  .no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .game-container {
+    @apply aspect-square;
+    max-width: 90vw;
+    max-height: 90vh;
+  }
+  
+  .game-wrapper h1 {
+    @apply text-3xl;
+  }
+  
+  .game-wrapper p {
+    @apply text-xs;
+  }
+}
+
+@media (max-width: 480px) {
+  .game-container {
+    @apply aspect-[3/4];
+    max-width: 95vw;
+    max-height: 70vh;
+  }
+  
+  .game-wrapper h1 {
+    @apply text-2xl mb-1;
+  }
+  
+  .game-wrapper p {
+    @apply text-xs;
+  }
+  
+  .game-wrapper .text-center.mt-4 {
+    @apply mt-2;
+  }
+}
+
+/* Landscape orientation on mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .game-container {
+    @apply aspect-[16/10];
+    max-height: 80vh;
+  }
+  
+  .game-wrapper h1 {
+    @apply text-2xl mb-1;
+  }
+  
+  .game-wrapper .mb-4 {
+    @apply mb-2;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .game-container {
+    @apply border-4 border-white;
+  }
+  
+  .game-button {
+    @apply border-2 border-white;
+  }
+  
+  body {
+    @apply bg-black text-white;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .game-button {
+    @apply transform-none;
+    transition: none !important;
+  }
+  
+  .loading-spinner {
+    @apply animate-none;
+  }
+  
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus styles for accessibility */
+.game-button:focus,
+button:focus,
+[role="button"]:focus {
+  @apply outline-none ring-4 ring-blue-500 ring-opacity-50;
+}
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* High contrast text */
+@media (prefers-contrast: high) {
+  .text-white {
+    color: #ffffff !important;
+  }
+  
+  .text-black {
+    color: #000000 !important;
+  }
+}
+
+/* Large text support */
+@media (min-resolution: 2dppx) {
+  .game-container {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Print styles */
+@media print {
+  .game-container {
+    display: none;
+  }
+  
+  body::after {
+    content: "Flappy Bird - Un juego web interactivo. Visita la página web para jugar.";
+    display: block;
+    text-align: center;
+    font-size: 18px;
+    margin-top: 50px;
+  }
+}
