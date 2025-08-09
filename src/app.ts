@@ -30,14 +30,15 @@ let bird: Phaser.Physics.Arcade.Sprite;
 let pipes: Phaser.Physics.Arcade.Group;
 let ground: Phaser.GameObjects.TileSprite;
 let scoreText: Phaser.GameObjects.Text;
+let instructionText: Phaser.GameObjects.Text | undefined;
 let score = 0;
 let gameOver = false;
 let gameStarted = false;
 let pipeTimer = 0;
 
-// Mario Bros background elements
+// Fondo: nubes y pinos
 let clouds: Phaser.GameObjects.Group;
-let hills: Phaser.GameObjects.Group;
+let hills: Phaser.GameObjects.Group; // reutilizamos el nombre para los pinos
 
 // Mario Bros coins system
 let coins: Phaser.Physics.Arcade.Group;
@@ -111,15 +112,20 @@ function preload(this: Phaser.Scene) {
   graphics.fillRect(32, 4, 16, 8);
   graphics.generateTexture('cloud', 64, 32);
   
-  // Mario Bros Hill - Green pixelated
+  // Pino (árbol) pixelado
   graphics.clear();
-  graphics.fillStyle(0x00AA00);
-  // Hill shape (pixelated)
-  graphics.fillRect(20, 60, 120, 20);
-  graphics.fillRect(40, 40, 80, 20);
-  graphics.fillRect(60, 20, 40, 20);
-  graphics.fillRect(70, 10, 20, 10);
-  graphics.generateTexture('hill', 160, 80);
+  // Tronco
+  graphics.fillStyle(0x5B3716); // marrón
+  graphics.fillRect(18, 52, 8, 12);
+  // Capas de hojas (triángulos apilados)
+  graphics.fillStyle(0x0E7A24);
+  graphics.fillTriangle(10, 55, 34, 55, 22, 30); // superior
+  graphics.fillTriangle(8, 62, 36, 62, 22, 36);  // media
+  graphics.fillTriangle(6, 70, 38, 70, 22, 44);  // inferior
+  // Nieve / luz (detalle)
+  graphics.fillStyle(0x6FEF9B, 0.6);
+  graphics.fillTriangle(14, 46, 22, 34, 30, 46);
+  graphics.generateTexture('pine', 44, 70);
   
   // Mario Bros Coin - Golden pixelated
   graphics.clear();
@@ -145,22 +151,24 @@ function preload(this: Phaser.Scene) {
 }
 
 function createMarioBrosBackground(this: Phaser.Scene) {
-  // Create hills (back layer)
+  // Pinos (capa trasera)
   hills = this.add.group();
-  for (let i = 0; i < 6; i++) {
-    const hill = this.add.image(i * 200 - 100, 480, 'hill');
-    hill.setOrigin(0.5, 1);
-    hill.setScale(0.8);
-    hill.setAlpha(0.7);
-    hills.add(hill);
+  for (let i = 0; i < 9; i++) {
+    const x = i * 120 - 60 + Phaser.Math.Between(-20, 20);
+    const tree = this.add.image(x, 540, 'pine');
+    const scale = Phaser.Math.FloatBetween(0.7, 1.2);
+    tree.setScale(scale);
+    tree.setOrigin(0.5, 1);
+    tree.setAlpha(Phaser.Math.FloatBetween(0.6, 0.9));
+    hills.add(tree);
   }
-  
-  // Create clouds (middle layer)
+
+  // Nubes (capa media)
   clouds = this.add.group();
   for (let i = 0; i < 8; i++) {
     const cloud = this.add.image(
-      Phaser.Math.Between(0, 1000), 
-      Phaser.Math.Between(50, 200), 
+      Phaser.Math.Between(0, 1000),
+      Phaser.Math.Between(50, 200),
       'cloud'
     );
     cloud.setScale(Phaser.Math.FloatBetween(0.5, 1.0));
@@ -209,26 +217,26 @@ function create(this: Phaser.Scene) {
   // Create coins group
   coins = this.physics.add.group();
   
-  // Create UI
-  scoreText = this.add.text(400, 50, `Score: ${score} | Coins: ${coinScore}`, {
-    fontSize: '28px',
+  // UI: marcador (alineado a la izquierda para que no se corte)
+  scoreText = this.add.text(12, 12, `Tuberías: ${score} | Monedas: ${coinScore} | Total: 0`, {
+    fontSize: '22px',
     fontFamily: 'Arial',
     color: '#FFFFFF',
     stroke: '#000000',
     strokeThickness: 4
   });
-  scoreText.setOrigin(0.5);
+  scoreText.setOrigin(0, 0);
   
-  // Instructions
-  const instructionText = this.add.text(400, 200, 
-    'CLICK or SPACE to swim up!\nHelp Cheep Cheep avoid the pipes!', {
-    fontSize: '24px',
-    fontFamily: 'Arial',
-    color: '#FFFFFF',
-    stroke: '#000000',
-    strokeThickness: 3,
-    align: 'center'
-  });
+  // Instrucciones (se eliminará tras pasar el primer tubo)
+  instructionText = this.add.text(400, 200,
+    'CLIC o ESPACIO para nadar\n¡Evita las tuberías!', {
+      fontSize: '24px',
+      fontFamily: 'Arial',
+      color: '#FFFFFF',
+      stroke: '#000000',
+      strokeThickness: 3,
+      align: 'center'
+    });
   instructionText.setOrigin(0.5);
   
   // Setup collisions
@@ -278,7 +286,7 @@ function collectCoin(cheepCheep: any, coin: any) {
   // Add coin score
   coinScore++;
   const totalScore = score + (coinScore * 10);
-  scoreText.setText(`Score: ${score} | Coins: ${coinScore} | Total: ${totalScore}`);
+  scoreText.setText(`Tuberías: ${score} | Monedas: ${coinScore} | Total: ${totalScore}`);
   
   // Destroy coin
   coin.destroy();
@@ -341,8 +349,8 @@ function handleGameOver(this: Phaser.Scene) {
     pipe.body.setVelocity(0, 0);
   });
   
-  // Show game over text
-  this.add.text(400, 300, 'GAME OVER', {
+  // Texto de fin de juego
+  this.add.text(400, 300, 'FIN DEL JUEGO', {
     fontSize: '48px',
     fontFamily: 'Arial',
     color: '#FF0000',
@@ -351,7 +359,7 @@ function handleGameOver(this: Phaser.Scene) {
   }).setOrigin(0.5);
   
   const totalScore = score + (coinScore * 10);
-  this.add.text(400, 340, `Pipes: ${score} | Coins: ${coinScore}`, {
+  this.add.text(400, 340, `Tuberías: ${score} | Monedas: ${coinScore}`, {
     fontSize: '20px',
     fontFamily: 'Arial',
     color: '#FFFFFF',
@@ -359,7 +367,7 @@ function handleGameOver(this: Phaser.Scene) {
     strokeThickness: 2
   }).setOrigin(0.5);
   
-  this.add.text(400, 365, `Total Score: ${totalScore}`, {
+  this.add.text(400, 365, `Total: ${totalScore}`, {
     fontSize: '24px',
     fontFamily: 'Arial',
     color: '#FFD700',
@@ -367,7 +375,7 @@ function handleGameOver(this: Phaser.Scene) {
     strokeThickness: 3
   }).setOrigin(0.5);
   
-  this.add.text(400, 400, 'CLICK or SPACE to restart', {
+  this.add.text(400, 400, 'CLIC o ESPACIO para reiniciar', {
     fontSize: '20px',
     fontFamily: 'Arial',
     color: '#FFFF00',
@@ -379,7 +387,7 @@ function handleGameOver(this: Phaser.Scene) {
   const highScore = parseInt(localStorage.getItem('flappyHighScore') || '0');
   if (totalScore > highScore) {
     localStorage.setItem('flappyHighScore', totalScore.toString());
-    this.add.text(400, 420, 'NEW HIGH SCORE!', {
+  this.add.text(400, 420, '¡NUEVO RÉCORD!', {
       fontSize: '20px',
       fontFamily: 'Arial',
       color: '#00FF00',
@@ -387,7 +395,7 @@ function handleGameOver(this: Phaser.Scene) {
       strokeThickness: 3
     }).setOrigin(0.5);
   } else {
-    this.add.text(400, 420, `Best: ${highScore}`, {
+  this.add.text(400, 420, `Mejor: ${highScore}`, {
       fontSize: '18px',
       fontFamily: 'Arial',
       color: '#CCCCCC',
@@ -398,7 +406,7 @@ function handleGameOver(this: Phaser.Scene) {
 }
 
 function updateMarioBrosParallax() {
-  // Move clouds slowly (parallax effect)
+  // Nubes (parallax)
   clouds.children.entries.forEach((cloud: any) => {
     cloud.x -= 0.5;
     // Reset cloud position when it goes off screen
@@ -408,9 +416,9 @@ function updateMarioBrosParallax() {
     }
   });
   
-  // Move hills very slowly (background layer)
+  // Pinos más lentos (capa trasera)
   hills.children.entries.forEach((hill: any) => {
-    hill.x -= 0.2;
+    hill.x -= 0.25 * (1 / (hill.scale || 1));
     // Reset hill position when it goes off screen
     if (hill.x < -200) {
       hill.x = 1000;
@@ -509,7 +517,12 @@ function update(this: Phaser.Scene, time: number, delta: number) {
       pipe.setData('scored', true);
       if (pipe.flipY) { // Only count top pipe
         score++;
-        scoreText.setText(`Score: ${score}`);
+        const totalScore = score + (coinScore * 10);
+        scoreText.setText(`Tuberías: ${score} | Monedas: ${coinScore} | Total: ${totalScore}`);
+        if (score === 1 && instructionText) {
+          instructionText.destroy();
+          instructionText = undefined;
+        }
         console.log('🎯 Score:', score);
       }
     }

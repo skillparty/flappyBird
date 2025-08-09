@@ -23,4 +23,10 @@ describe('App bootstrap', () => {
     expect((game as any).config.width).toBe(800);
     expect((game as any).config.height).toBe(600);
   });
+
+  test('has arcade physics enabled with gravity set', () => {
+    const physics = (game as any).config.physics;
+    expect(physics.default).toBe('arcade');
+    expect(physics.arcade.gravity.y).toBeGreaterThan(0);
+  });
 });
