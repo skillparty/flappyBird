@@ -28,10 +28,10 @@ h1, h2, h3 {
 
 /* Game container */
 .game-container {
-  width: 800px;
-  height: 600px;
-  max-width: 100%;
-  max-height: 100%;
+  width: 100%;
+  max-width: 800px;
+  aspect-ratio: 4 / 3; /* Mantiene proporción 800x600 */
+  height: auto;
   background: #000;
   border-radius: 14px;
   box-shadow:
@@ -138,8 +138,8 @@ button:focus {
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .game-container {
-  width: 92vw;
-  height: 64vh;
+  width: 94vw;
+  max-width: 94vw;
   }
   
   h1 {
@@ -150,8 +150,20 @@ button:focus {
 @media (max-width: 480px) {
   .game-container {
   width: 96vw;
-  height: 60vh;
+  max-width: 96vw;
   }
+/* Canvas responsive scaling */
+#game-container canvas, .game-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+/* Ensure header/main/footer centered via margin auto on cabinet */
+.cabinet { margin-left: auto; margin-right: auto; padding-left: clamp(0.75rem, 2vw, 1.5rem); padding-right: clamp(0.75rem, 2vw, 1.5rem); }
+
+main { width: 100%; }
+
 /* Center wrapper helper */
 .game-wrapper {
   display: flex;
