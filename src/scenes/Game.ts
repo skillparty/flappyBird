@@ -13,6 +13,8 @@ export default class Game extends Phaser.Scene {
   private pipeManager!: PipeManager;
   private ground!: Phaser.GameObjects.TileSprite;
   private background!: Phaser.GameObjects.Image;
+  private treesFar!: Phaser.GameObjects.TileSprite;
+  private treesNear!: Phaser.GameObjects.TileSprite;
   private clouds!: Phaser.Physics.Arcade.Group;
   
   // UI elements
@@ -76,6 +78,19 @@ export default class Game extends Phaser.Scene {
     this.background = this.add.image(400, 300, 'background');
     this.background.setDisplaySize(800, 600);
     this.background.setDepth(-10);
+
+  // Parallax tree layers (drawn lower on screen). Use TileSprite for horizontal looping
+  // Far trees (darker, slower)
+  this.treesFar = this.add.tileSprite(400, 500, 800, 200, 'trees_far');
+  this.treesFar.setOrigin(0.5, 1);
+  this.treesFar.setDepth(-8);
+  this.treesFar.alpha = 0.85;
+
+  // Near trees (brighter, a bit faster)
+  this.treesNear = this.add.tileSprite(400, 520, 800, 200, 'trees_near');
+  this.treesNear.setOrigin(0.5, 1);
+  this.treesNear.setDepth(-7);
+  this.treesNear.alpha = 0.95;
   }
 
   private createClouds(): void {
@@ -498,6 +513,10 @@ export default class Game extends Phaser.Scene {
     
     // Update ground scrolling
     this.ground.tilePositionX += 2;
+
+  // Parallax scroll: subtle; slower than ground
+  if (this.treesFar) this.treesFar.tilePositionX += 0.3;
+  if (this.treesNear) this.treesNear.tilePositionX += 0.6;
     
     // Update clouds
     this.updateClouds();
