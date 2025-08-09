@@ -26,14 +26,28 @@
   
   <div class="game-wrapper w-full max-w-4xl mx-auto" role="main">
     <!-- Game header -->
-    <header class="text-center mb-4">
-      <h1 class="text-4xl md:text-5xl font-bold text-white drop-shadow-lg mb-2">
-        Flappy Bird
-        <span class="sr-only">- Juego clásico</span>
-      </h1>
-      <p class="text-white/80 text-sm md:text-base" id="game-instructions">
-        Haz clic o presiona ESPACIO para saltar
-      </p>
+    <header class="mb-4">
+      <div class="flex flex-col sm:flex-row items-center sm:items-end justify-between gap-3 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/20 shadow-lg">
+        <div class="text-center sm:text-left">
+          <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-yellow-300 via-amber-200 to-rose-300 drop-shadow">
+            Flappy Bird
+          </h1>
+          <p class="text-white/70 text-xs md:text-sm" id="game-instructions">
+            Clic o ESPACIO para saltar · Evita las tuberías · Mejora tu récord
+          </p>
+        </div>
+        <nav aria-label="Acciones de juego" class="flex flex-wrap justify-center gap-2">
+          <button onclick="window.flappyAPI?.restart()" class="px-3 py-1.5 text-xs md:text-sm font-semibold rounded-lg bg-emerald-500/80 hover:bg-emerald-500 text-white shadow focus:outline-none focus:ring-2 focus:ring-emerald-300" aria-label="Reiniciar partida">Reiniciar</button>
+          <button id="mute-btn" class="px-3 py-1.5 text-xs md:text-sm font-semibold rounded-lg bg-indigo-500/80 hover:bg-indigo-500 text-white shadow focus:outline-none focus:ring-2 focus:ring-indigo-300" aria-pressed="false" aria-label="Alternar sonido" onclick="(function(b){const m=window.flappyAPI?.toggleMute();b.setAttribute('aria-pressed',m);b.textContent=m?'🔇 Sonido':'🔊 Sonido';})(this)">🔊 Sonido</button>
+          <button onclick="alert('Máxima puntuación: '+window.flappyAPI?.getHighScore())" class="px-3 py-1.5 text-xs md:text-sm font-semibold rounded-lg bg-amber-500/80 hover:bg-amber-500 text-white shadow focus:outline-none focus:ring-2 focus:ring-amber-300" aria-label="Ver récord">Récord</button>
+        </nav>
+      </div>
+      <div class="mt-2 flex flex-wrap gap-2 text-[10px] md:text-xs text-white/60 justify-center sm:justify-start">
+        <span class="px-2 py-0.5 bg-black/25 rounded-full">Phaser 3</span>
+        <span class="px-2 py-0.5 bg-black/25 rounded-full">TypeScript</span>
+        <span class="px-2 py-0.5 bg-black/25 rounded-full">Accesible</span>
+        <span class="px-2 py-0.5 bg-black/25 rounded-full">Progresión</span>
+      </div>
     </header>
     
     <!-- Game container -->
@@ -71,24 +85,30 @@
     </div>
     
     <!-- Game footer -->
-    <footer class="text-center mt-4 text-white/70 text-xs md:text-sm">
-      <div id="game-controls">
-        <p><strong>Controles:</strong> Clic del ratón o tecla ESPACIO para saltar</p>
-        <p class="mt-1">¡Evita los tubos verdes y consigue la puntuación más alta!</p>
-      </div>
-      
-      <!-- Game info -->
-      <details class="mt-2 text-left max-w-md mx-auto">
-        <summary class="cursor-pointer text-white/60 hover:text-white/80 text-xs">
-          Información del juego
-        </summary>
-        <div class="mt-2 text-xs text-white/70 space-y-1">
-          <p>• Motor: Phaser 3 + TypeScript</p>
-          <p>• Desarrollado por: skillparty</p>
-          <p>• Versión: Estable y optimizada</p>
-          <p>• Controles: Ratón y teclado</p>
+    <footer class="mt-5 text-white/70 text-[11px] md:text-xs">
+      <div class="grid md:grid-cols-3 gap-4 bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+        <div class="space-y-1">
+          <h2 class="font-semibold text-white/80 text-sm">Controles</h2>
+          <ul class="list-disc pl-4 space-y-0.5">
+            <li>Clic / Toque: Saltar</li>
+            <li>Espacio: Saltar</li>
+            <li>R: Reiniciar</li>
+            <li>M: Silenciar</li>
+          </ul>
         </div>
-      </details>
+        <div class="space-y-1">
+          <h2 class="font-semibold text-white/80 text-sm">Juego</h2>
+          <p>Progresión dinámica de dificultad, multiplicador por racha y ciclo día‑noche.</p>
+          <p>Optimizado para rendimiento y accesibilidad.</p>
+        </div>
+        <div class="space-y-1">
+          <h2 class="font-semibold text-white/80 text-sm">Datos</h2>
+          <p>Récord guardado localmente.</p>
+          <p>Mejor multiplicador y puntuación total persistentes.</p>
+          <p class="opacity-70">Hecho con ❤️ por skillparty.</p>
+        </div>
+      </div>
+      <div class="mt-3 text-center opacity-60">© <span id="year"></span> Flappy Bird Clone · Código educativo</div>
     </footer>
   </div>
   
@@ -102,5 +122,13 @@
   </div>
   
   <script type="module" src="/src/app.ts"></script>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    // Hotkeys for R and M
+    document.addEventListener('keydown', (e)=>{
+      if(e.key==='r' || e.key==='R') { window.flappyAPI?.restart(); }
+      if(e.key==='m' || e.key==='M') { const btn=document.getElementById('mute-btn'); btn?.click(); }
+    });
+  </script>
 </body>
 </html>

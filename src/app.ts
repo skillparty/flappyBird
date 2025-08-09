@@ -733,6 +733,28 @@ function update(this: Phaser.Scene, time: number, delta: number) {
 // Initialize the game
 const game = new Phaser.Game(config);
 
+// Expose simple API for UI header controls
+(window as any).flappyAPI = {
+  restart() {
+    try {
+      const scene = game.scene.getScene('default');
+      scene.scene.restart();
+    } catch (e) {
+      console.warn('No se pudo reiniciar la escena:', e);
+    }
+  },
+  toggleMute() {
+    mute = !mute;
+    return mute;
+  },
+  getHighScore() {
+    return parseInt(localStorage.getItem('flappyHighScore') || '0');
+  },
+  getBestMultiplier() {
+    return parseFloat(localStorage.getItem('flappyBestMultiplier') || '1');
+  }
+};
+
 // Global error handling
 window.addEventListener('error', (event) => {
   console.error('Global error:', event.error);
