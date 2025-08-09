@@ -21,10 +21,6 @@ export default class Preload extends Phaser.Scene {
     try {
       // Real file path (drop your mp3/ogg here): public/assets/audio/background.mp3
       this.load.audio('background', ['assets/audio/background.mp3']);
-  // Core SFX
-  this.load.audio('jump', ['assets/audio/jump.mp3']);
-  this.load.audio('score', ['assets/audio/score.mp3']);
-  this.load.audio('hit', ['assets/audio/hit.mp3']);
     } catch (e) {
       console.warn('Could not queue background music:', e);
     }
@@ -176,56 +172,6 @@ export default class Preload extends Phaser.Scene {
     graphics.fillCircle(50, 25, 25);
     graphics.fillCircle(70, 30, 20);
     graphics.generateTexture('cloud', 100, 60);
-
-    // Procedural trees (two parallax layers): far (darker, smaller), near (brighter, larger)
-    // FAR TREES LAYER
-    graphics.clear();
-    for (let i = 0; i < 8; i++) {
-      const baseX = i * 100 + Phaser.Math.Between(-10, 10);
-      const trunkH = Phaser.Math.Between(30, 42);
-      // trunk
-      graphics.fillStyle(0x4d341c);
-      graphics.fillRect(baseX + 40, 170 - trunkH, 8, trunkH);
-      // foliage (cluster of circles)
-      const foliageColor = 0x2f6b2f; // darker
-      graphics.fillStyle(foliageColor, 1);
-      const cx = baseX + 44;
-      const cy = 170 - trunkH;
-      graphics.fillCircle(cx, cy, 18);
-      graphics.fillCircle(cx - 12, cy + 4, 14);
-      graphics.fillCircle(cx + 12, cy + 4, 14);
-      graphics.fillCircle(cx, cy + 10, 15);
-      // highlight
-      graphics.fillStyle(0x3d8a3d, 0.6);
-      graphics.fillCircle(cx - 6, cy - 2, 8);
-    }
-    graphics.generateTexture('trees_far', 800, 200);
-
-    // NEAR TREES LAYER
-    graphics.clear();
-    for (let i = 0; i < 6; i++) {
-      const baseX = i * 130 + Phaser.Math.Between(-8, 8);
-      const trunkH = Phaser.Math.Between(55, 70);
-      graphics.fillStyle(0x5a3b1e);
-      graphics.fillRect(baseX + 50, 170 - trunkH, 12, trunkH);
-      const cx = baseX + 56;
-      const cy = 170 - trunkH;
-      const mainColor = 0x3fa03f;
-      graphics.fillStyle(mainColor, 1);
-      graphics.fillCircle(cx, cy, 26);
-      graphics.fillCircle(cx - 18, cy + 8, 20);
-      graphics.fillCircle(cx + 18, cy + 8, 20);
-      graphics.fillCircle(cx, cy + 18, 22);
-      graphics.fillStyle(0x54c454, 0.55);
-      graphics.fillCircle(cx - 10, cy - 4, 10);
-      graphics.fillCircle(cx + 8, cy + 6, 9);
-      // occasional accent (fruit)
-      if (Math.random() < 0.35) {
-        graphics.fillStyle(0xffd24d);
-        graphics.fillCircle(cx + Phaser.Math.Between(-8, 8), cy + Phaser.Math.Between(4, 14), 3);
-      }
-    }
-    graphics.generateTexture('trees_near', 800, 200);
     
     graphics.destroy();
     
