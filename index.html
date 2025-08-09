@@ -18,47 +18,70 @@
   
   <link rel="stylesheet" href="/src/index.css">
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="min-h-screen bg-transparent">
   <!-- Skip to main content link for screen readers -->
   <a href="#game-container" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-4 py-2 rounded z-50">
     Saltar al juego
   </a>
   
+  <!-- Main content wrapper - perfectly centered -->
+  <div class="min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="w-full max-w-4xl mx-auto flex flex-col items-center justify-center space-y-6">
+  
   <!-- Game header (top) -->
-  <div class="cabinet-wrapper flex-grow flex flex-col items-center">
-  <header class="w-full cabinet px-4 pt-4" role="banner">
-      <div class="flex flex-col sm:flex-row items-center sm:items-end justify-between gap-3 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/20 shadow-lg">
-        <div class="text-center sm:text-left">
-          <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-yellow-300 via-amber-200 to-rose-300 drop-shadow">
+  <header class="w-full text-center" role="banner">
+      <div class="bg-white/10 backdrop-blur-sm rounded-xl px-8 py-6 border border-white/20 shadow-lg mx-auto max-w-5xl">
+        
+        <!-- Sección superior: Título + Instrucciones -->
+        <div class="mb-6">
+          <h1 class="text-5xl md:text-6xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-yellow-300 via-amber-200 to-rose-300 drop-shadow mb-2">
             Flappy Bird
           </h1>
-          <p class="text-white/70 text-xs md:text-sm" id="game-instructions">
+          <p class="text-white/80 text-base md:text-lg font-medium" id="game-instructions">
             Clic o ESPACIO para saltar · Evita las tuberías · Mejora tu récord
           </p>
-          <div class="mt-2 h-2 w-56 bg-white/10 rounded overflow-hidden relative" aria-label="Progreso ciclo día-noche" title="Ciclo Día/Noche">
-            <div id="cycle-bar" class="h-full w-0 bg-gradient-to-r from-sky-300 via-fuchsia-300 to-indigo-800 transition-[width] duration-500 ease-linear"></div>
+        </div>
+        
+        <!-- Sección media: Barra de progreso + Tags -->
+        <div class="mb-6 flex flex-col items-center gap-4">
+          <!-- Barra de ciclo día-noche -->
+          <div class="flex flex-col items-center">
+            <span class="text-white/60 text-xs mb-2 font-medium">Ciclo Día-Noche</span>
+            <div class="h-3 w-80 bg-white/10 rounded-full overflow-hidden relative border border-white/20 shadow-inner" aria-label="Progreso ciclo día-noche" title="Ciclo Día/Noche">
+              <div id="cycle-bar" class="h-full w-0 bg-gradient-to-r from-sky-300 via-fuchsia-300 to-indigo-800 transition-[width] duration-500 ease-linear shadow-sm"></div>
+            </div>
+          </div>
+          
+          <!-- Tags tecnológicos -->
+          <div class="flex flex-wrap justify-center gap-2">
+            <span class="px-3 py-1 bg-black/30 rounded-full text-white/70 text-xs font-medium border border-white/10">⚡ Phaser 3</span>
+            <span class="px-3 py-1 bg-black/30 rounded-full text-white/70 text-xs font-medium border border-white/10">📘 TypeScript</span>
+            <span class="px-3 py-1 bg-black/30 rounded-full text-white/70 text-xs font-medium border border-white/10">♿ Accesible</span>
+            <span class="px-3 py-1 bg-black/30 rounded-full text-white/70 text-xs font-medium border border-white/10">📈 Progresión</span>
           </div>
         </div>
-        <nav aria-label="Acciones de juego" class="flex flex-wrap justify-center gap-2">
-          <button onclick="window.flappyAPI?.restart()" class="px-3 py-1.5 text-xs md:text-sm font-semibold rounded-lg bg-emerald-500/80 hover:bg-emerald-500 text-white shadow focus:outline-none focus:ring-2 focus:ring-emerald-300" aria-label="Reiniciar partida">Reiniciar</button>
-          <button id="mute-btn" class="px-3 py-1.5 text-xs md:text-sm font-semibold rounded-lg bg-indigo-500/80 hover:bg-indigo-500 text-white shadow focus:outline-none focus:ring-2 focus:ring-indigo-300" aria-pressed="false" aria-label="Alternar sonido" onclick="(function(b){const m=window.flappyAPI?.toggleMute();b.setAttribute('aria-pressed',m);b.textContent=m?'🔇 Sonido':'🔊 Sonido';})(this)">🔊 Sonido</button>
-          <button id="record-btn" class="px-3 py-1.5 text-xs md:text-sm font-semibold rounded-lg bg-amber-500/80 hover:bg-amber-500 text-white shadow focus:outline-none focus:ring-2 focus:ring-amber-300" aria-haspopup="dialog" aria-controls="record-modal" aria-label="Ver récord">Récord</button>
-          <button id="fullscreen-btn" class="px-3 py-1.5 text-xs md:text-sm font-semibold rounded-lg bg-purple-500/80 hover:bg-purple-500 text-white shadow focus:outline-none focus:ring-2 focus:ring-purple-300" aria-label="Pantalla completa" onclick="(function(){const el=document.documentElement;if(!document.fullscreenElement){el.requestFullscreen?.();}else{document.exitFullscreen?.();}})()">⛶</button>
+        
+        <!-- Sección inferior: Botones de acción -->
+        <nav aria-label="Acciones de juego" class="flex flex-wrap justify-center gap-3">
+          <button onclick="window.flappyAPI?.restart()" class="px-5 py-2.5 text-sm font-semibold rounded-lg bg-emerald-600/90 hover:bg-emerald-500 text-white shadow-lg hover:shadow-xl focus:outline-none focus:ring-3 focus:ring-emerald-300/50 transition-all duration-200 border border-emerald-500/20" aria-label="Reiniciar partida">
+            🔄 Reiniciar
+          </button>
+          <button id="mute-btn" class="px-5 py-2.5 text-sm font-semibold rounded-lg bg-indigo-600/90 hover:bg-indigo-500 text-white shadow-lg hover:shadow-xl focus:outline-none focus:ring-3 focus:ring-indigo-300/50 transition-all duration-200 border border-indigo-500/20" aria-pressed="false" aria-label="Alternar sonido" onclick="(function(b){const m=window.flappyAPI?.toggleMute();b.setAttribute('aria-pressed',m);b.textContent=m?'🔇 Sonido':'🔊 Sonido';})(this)">
+            🔊 Sonido
+          </button>
+          <button id="record-btn" class="px-5 py-2.5 text-sm font-semibold rounded-lg bg-amber-600/90 hover:bg-amber-500 text-white shadow-lg hover:shadow-xl focus:outline-none focus:ring-3 focus:ring-amber-300/50 transition-all duration-200 border border-amber-500/20" aria-haspopup="dialog" aria-controls="record-modal" aria-label="Ver récord">
+            🏆 Récord
+          </button>
+          <button id="fullscreen-btn" class="px-5 py-2.5 text-sm font-semibold rounded-lg bg-purple-600/90 hover:bg-purple-500 text-white shadow-lg hover:shadow-xl focus:outline-none focus:ring-3 focus:ring-purple-300/50 transition-all duration-200 border border-purple-500/20" aria-label="Pantalla completa" onclick="(function(){const el=document.documentElement;if(!document.fullscreenElement){el.requestFullscreen?.();}else{document.exitFullscreen?.();}})()">
+            ⛶ Pantalla
+          </button>
         </nav>
       </div>
-      <div class="mt-2 flex flex-wrap gap-2 text-[10px] md:text-xs text-white/60 justify-center sm:justify-start">
-        <span class="px-2 py-0.5 bg-black/25 rounded-full">Phaser 3</span>
-        <span class="px-2 py-0.5 bg-black/25 rounded-full">TypeScript</span>
-        <span class="px-2 py-0.5 bg-black/25 rounded-full">Accesible</span>
-        <span class="px-2 py-0.5 bg-black/25 rounded-full">Progresión</span>
-      </div>
-  </header>
-
-  <main class="flex-grow flex items-center justify-center px-4 py-4 w-full" role="main">
-    <div class="w-full flex justify-center">
+  </header>  <!-- Game container (center) -->
+  <main class="flex items-center justify-center" role="main">
     <div
       id="game-container" 
-      class="game-container relative mx-auto bg-sky-400 rounded-lg shadow-2xl overflow-hidden"
+      class="game-container relative bg-sky-400 rounded-lg shadow-2xl overflow-hidden"
       role="application"
       aria-label="Flappy Bird Game"
       aria-describedby="game-instructions game-controls"
@@ -88,37 +111,108 @@
       <div id="game-announcements" class="sr-only" aria-live="assertive" aria-atomic="true">
         <!-- Game state changes will be announced here -->
       </div>
-  </div>
-  </div>
+    </div>
   </main>
 
   <!-- Game footer (bottom) -->
-  <footer class="w-full cabinet px-4 pb-6 text-white/70 text-[11px] md:text-xs" role="contentinfo">
-      <div class="grid md:grid-cols-3 gap-4 bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-        <div class="space-y-1">
-          <h2 class="font-semibold text-white/80 text-sm">Controles</h2>
-          <ul class="list-disc pl-4 space-y-0.5">
-            <li>Clic / Toque: Saltar</li>
-            <li>Espacio: Saltar</li>
-            <li>R: Reiniciar</li>
-            <li>M: Silenciar</li>
-          </ul>
+  <footer class="w-full text-center" role="contentinfo">
+      <div class="bg-white/5 backdrop-blur-sm rounded-xl p-8 border border-white/10 mx-auto max-w-5xl">
+        
+        <!-- Secciones de información organizadas -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-6">
+          
+          <!-- Sección Controles -->
+          <div class="bg-white/5 rounded-lg p-4 border border-white/10">
+            <div class="flex items-center justify-center mb-3">
+              <h2 class="font-bold text-white text-lg">🎮 Controles</h2>
+            </div>
+            <ul class="text-white/80 text-sm space-y-2">
+              <li class="flex items-center justify-center gap-2">
+                <span class="bg-white/10 px-2 py-1 rounded text-xs">🖱️</span>
+                <span>Clic / Toque: Saltar</span>
+              </li>
+              <li class="flex items-center justify-center gap-2">
+                <span class="bg-white/10 px-2 py-1 rounded text-xs">⌨️</span>
+                <span>Espacio: Saltar</span>
+              </li>
+              <li class="flex items-center justify-center gap-2">
+                <span class="bg-white/10 px-2 py-1 rounded text-xs">R</span>
+                <span>Reiniciar</span>
+              </li>
+              <li class="flex items-center justify-center gap-2">
+                <span class="bg-white/10 px-2 py-1 rounded text-xs">M</span>
+                <span>Silenciar</span>
+              </li>
+            </ul>
+          </div>
+          
+          <!-- Sección Juego -->
+          <div class="bg-white/5 rounded-lg p-4 border border-white/10">
+            <div class="flex items-center justify-center mb-3">
+              <h2 class="font-bold text-white text-lg">🚀 Características</h2>
+            </div>
+            <div class="text-white/80 text-sm space-y-2">
+              <div class="flex items-center justify-center gap-2">
+                <span class="text-blue-400">📈</span>
+                <span>Dificultad progresiva</span>
+              </div>
+              <div class="flex items-center justify-center gap-2">
+                <span class="text-yellow-400">⭐</span>
+                <span>Sistema de multiplicador</span>
+              </div>
+              <div class="flex items-center justify-center gap-2">
+                <span class="text-purple-400">🌙</span>
+                <span>Ciclo día-noche</span>
+              </div>
+              <div class="flex items-center justify-center gap-2">
+                <span class="text-green-400">♿</span>
+                <span>Accesibilidad completa</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Sección Datos -->
+          <div class="bg-white/5 rounded-lg p-4 border border-white/10">
+            <div class="flex items-center justify-center mb-3">
+              <h2 class="font-bold text-white text-lg">💾 Persistencia</h2>
+            </div>
+            <div class="text-white/80 text-sm space-y-2">
+              <div class="flex items-center justify-center gap-2">
+                <span class="text-amber-400">🏆</span>
+                <span>Récord guardado</span>
+              </div>
+              <div class="flex items-center justify-center gap-2">
+                <span class="text-red-400">🎯</span>
+                <span>Mejor multiplicador</span>
+              </div>
+              <div class="flex items-center justify-center gap-2">
+                <span class="text-cyan-400">📊</span>
+                <span>Estadísticas totales</span>
+              </div>
+              <div class="flex items-center justify-center gap-2 pt-2 border-t border-white/10">
+                <span class="text-pink-400">❤️</span>
+                <span class="text-white/60">Hecho por skillparty</span>
+              </div>
+            </div>
+          </div>
+          
         </div>
-        <div class="space-y-1">
-          <h2 class="font-semibold text-white/80 text-sm">Juego</h2>
-          <p>Progresión dinámica de dificultad, multiplicador por racha y ciclo día‑noche.</p>
-          <p>Optimizado para rendimiento y accesibilidad.</p>
-        </div>
-        <div class="space-y-1">
-          <h2 class="font-semibold text-white/80 text-sm">Datos</h2>
-          <p>Récord guardado localmente.</p>
-          <p>Mejor multiplicador y puntuación total persistentes.</p>
-          <p class="opacity-70">Hecho con ❤️ por skillparty.</p>
+        
+        <!-- Copyright y créditos -->
+        <div class="pt-4 border-t border-white/20">
+          <div class="flex flex-col md:flex-row items-center justify-center gap-4 text-white/50 text-sm">
+            <span>© <span id="year"></span> Flappy Bird Clone</span>
+            <span class="hidden md:block">•</span>
+            <span>Proyecto educativo con código abierto</span>
+            <span class="hidden md:block">•</span>
+            <span>Desarrollado con Phaser 3 + TypeScript</span>
+          </div>
         </div>
       </div>
-    <div class="mt-3 text-center opacity-60">© <span id="year"></span> Flappy Bird Clone · Código educativo</div>
   </footer>
-  </div>
+  
+    </div> <!-- End centered content -->
+  </div> <!-- End main wrapper -->
   
   <!-- Screen reader instructions -->
   <div class="sr-only">
