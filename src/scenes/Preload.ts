@@ -15,6 +15,15 @@ export default class Preload extends Phaser.Scene {
     
     // Create stable game assets
     this.createGameAssets();
+
+    // Attempt to load background music asset (user can replace with real file in public/assets/audio)
+    // If the file is missing, it will fail silently and AudioManager will simply skip music.
+    try {
+      // Real file path (drop your mp3/ogg here): public/assets/audio/background.mp3
+      this.load.audio('background', ['assets/audio/background.mp3']);
+    } catch (e) {
+      console.warn('Could not queue background music:', e);
+    }
   }
 
   private createTerminalLoadingScreen(): void {

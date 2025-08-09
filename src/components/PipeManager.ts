@@ -20,6 +20,8 @@ export default class PipeManager {
   private isActive: boolean;
   private telemetry: TelemetryEvent[] = [];
   private difficultyFn?: (score: number) => DifficultySettings;
+  // Static mode flag: when true, pipes do NOT move horizontally; scoring is time/spawn based
+  private staticMode: boolean = true;
 
   constructor(scene: Phaser.Scene, config?: Partial<PipeConfig>) {
     this.scene = scene;
@@ -27,6 +29,7 @@ export default class PipeManager {
   speed: config?.speed ?? GAME_CONFIG.physics.pipeSpeed,
   gap: config?.gap ?? GAME_CONFIG.gameplay.pipeGap,
   spawnInterval: config?.spawnInterval ?? GAME_CONFIG.gameplay.pipeSpawnInterval,
+  spawnX: config?.spawnX ?? 800, // Right edge of screen
   minHeight: config?.minHeight ?? 100,
   maxHeight: config?.maxHeight ?? 400
     };
@@ -112,50 +115,63 @@ export default class PipeManager {
     try {
       const currentTime = this.scene.time.now;
       
-      // Check if enough time has passed since last spawn (longer interval for static pipes)
-      if (currentTime - this.lastSpawnTime < (this.config.spawnInterval * 2)) {
+      // Check if enough time has passed since last spawn
+      if (currentTime - this.lastSpawnTime < this.config.spawnInterval) {
         return;
       }
 
-      // Optionally fetch dynamic difficulty settings
-      if (this.difficultyFn) {
+      // In static mode we ignore dynamic difficulty speed (keep gap adjustable if wanted)
+      if (!this.staticMode && this.difficultyFn) {
         const d = this.difficultyFn(currentScore);
         this.config.speed = d.speed;
         this.config.gap = d.gap;
       }
 
-      // Calculate static gap positions for stable gameplay
-      const pipeX = 400 + (this.activePipes.length * 250); // Spread pipes evenly
-      const gapCenter = Phaser.Math.Between(150, 450); // Vertical center of gap
+      // Calculate random gap position (classic Flappy Bird style)
+      const gapCenter = Phaser.Math.Between(
+        this.config.minHeight + this.config.gap / 2,
+        this.config.maxHeight - this.config.gap / 2
+      );
+
+      // Respect a max number of simultaneous pipes in static mode
+      if (this.staticMode && this.activePipes.length >= 5) {
+        return; // Don't spawn more until some are recycled (could add rotation later)
+      }
 
       // Get pipes from pool
       const topPipe = this.getPipeFromPool();
       const bottomPipe = this.getPipeFromPool();
 
-      // Position top pipe - static position
-      topPipe.setPosition(pipeX, gapCenter - this.config.gap / 2);
+  // Position top pipe - spawn at right edge
+      topPipe.setPosition(this.config.spawnX, gapCenter - this.config.gap / 2);
       topPipe.setFlipY(true);
       topPipe.setOrigin(0.5, 1); // Bottom of sprite for top pipe
 
-      // Position bottom pipe - static position
-      bottomPipe.setPosition(pipeX, gapCenter + this.config.gap / 2);
+      // Position bottom pipe - spawn at right edge
+      bottomPipe.setPosition(this.config.spawnX, gapCenter + this.config.gap / 2);
       bottomPipe.setOrigin(0.5, 0); // Top of sprite for bottom pipe
 
-  // Set physics properties - PIPES ARE STATIC, NO MOVEMENT
+  // Set physics properties - classic Flappy Bird movement (leftward)
       if (topPipe.body && bottomPipe.body) {
         const topBody = topPipe.body as Phaser.Physics.Arcade.Body;
         const bottomBody = bottomPipe.body as Phaser.Physics.Arcade.Body;
-        
-        // Pipes are completely static - no velocity at all
-        topBody.setVelocityX(0);
-        bottomBody.setVelocityX(0);
+        // Static mode: zero velocity
+        if (this.staticMode) {
+          topBody.setVelocityX(0);
+          bottomBody.setVelocityX(0);
+        } else {
+          topBody.setVelocityX(this.config.speed);
+          bottomBody.setVelocityX(this.config.speed);
+        }
         topBody.setImmovable(true);
         bottomBody.setImmovable(true);
       }
 
-  // Determine variant
-  const variant = this.chooseVariant(currentScore);
-  this.applyVariantBehavior(variant, topPipe, bottomPipe, gapCenter);
+      // Determine variant (force STATIC in static mode)
+      const variant = this.staticMode ? PipeVariant.STATIC : this.chooseVariant(currentScore);
+      if (!this.staticMode) {
+        this.applyVariantBehavior(variant, topPipe, bottomPipe, gapCenter);
+      }
 
       // Create pipe pair object
       const pipePair: PipePair = {
@@ -191,12 +207,22 @@ export default class PipeManager {
     if (!this.isActive) return;
 
     try {
-      // Pipes are static, no need to move them
-      // Only generate new pipes when needed (much less frequently for static gameplay)
-      // Check if we need more pipes based on current pipe count
-      if (this.activePipes.length < 3) {
-        this.generatePipe(currentScore);
+      if (!this.staticMode) {
+        // Moving mode: remove off-screen pipes
+        this.activePipes = this.activePipes.filter(pipePair => {
+          const pipeX = pipePair.top.x;
+          if (pipeX < -100) {
+            this.returnPipeToPool(pipePair.top);
+            this.returnPipeToPool(pipePair.bottom);
+            console.log(`Removed pipe pair ${pipePair.id} (off-screen)`);
+            return false;
+          }
+          return true;
+        });
       }
+
+      // Always attempt spawn (generatePipe handles interval & cap)
+      this.generatePipe(currentScore);
       
     } catch (error) {
       ErrorHandler.handleGameplayError(error as Error, 'pipe-update');
@@ -240,15 +266,23 @@ export default class PipeManager {
     if (!this.isActive || !bird.getIsAlive()) return false;
 
     try {
+      if (this.staticMode) {
+        // Static mode: award score once per newly spawned pipe pair (first unscored)
+        const unscored = this.activePipes.find(p => !p.scored);
+        if (unscored) {
+          unscored.scored = true;
+          console.log(`Static mode score for pipe ${unscored.id}`);
+          return true;
+        }
+        return false;
+      }
       for (const pipePair of this.activePipes) {
-        // Check if bird has passed this pipe and hasn't been scored yet
         if (!pipePair.scored && bird.x > pipePair.top.x + GAME_CONSTANTS.PIPE_WIDTH / 2) {
           pipePair.scored = true;
           console.log(`Bird passed pipe ${pipePair.id} - score!`);
           return true;
         }
       }
-      
       return false;
     } catch (error) {
       ErrorHandler.handleGameplayError(error as Error, 'pipe-scoring-check');
@@ -368,7 +402,7 @@ export default class PipeManager {
         break;
       }
       case PipeVariant.DOUBLE: {
-        // Spawn an extra immediate pair slightly offset - but also static
+        // Spawn an extra immediate pair slightly offset
         const extraTop = this.getPipeFromPool();
         const extraBottom = this.getPipeFromPool();
         extraTop.setPosition(topPipe.x + 150, topPipe.y);
@@ -377,9 +411,9 @@ export default class PipeManager {
         extraBottom.setPosition(bottomPipe.x + 150, bottomPipe.y);
         extraBottom.setOrigin(0.5, 0);
         if (extraTop.body && extraBottom.body) {
-          // Extra pipes are also static
-          (extraTop.body as Phaser.Physics.Arcade.Body).setVelocityX(0);
-          (extraBottom.body as Phaser.Physics.Arcade.Body).setVelocityX(0);
+          // Extra pipes move with same speed
+          (extraTop.body as Phaser.Physics.Arcade.Body).setVelocityX(this.config.speed);
+          (extraBottom.body as Phaser.Physics.Arcade.Body).setVelocityX(this.config.speed);
           (extraTop.body as Phaser.Physics.Arcade.Body).setImmovable(true);
           (extraBottom.body as Phaser.Physics.Arcade.Body).setImmovable(true);
         }

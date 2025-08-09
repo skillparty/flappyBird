@@ -63,6 +63,7 @@ export interface PipeConfig {
   speed: number;
   gap: number;
   spawnInterval: number;
+  spawnX: number;
   minHeight: number;
   maxHeight: number;
 }

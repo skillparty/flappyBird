@@ -78,7 +78,7 @@ export default class Bird extends Phaser.Physics.Arcade.Sprite {
   }
 
   /**
-   * Setup visual properties
+   * Setup visual properties with enhanced graphics
    */
   private setupVisuals(): void {
     try {
@@ -92,17 +92,71 @@ export default class Bird extends Phaser.Physics.Arcade.Sprite {
       // Set depth for proper layering
       this.setDepth(10);
       
+      // Add visual enhancements
+      this.addVisualEffects();
+      
     } catch (error) {
       ErrorHandler.handleGameplayError(error as Error, 'bird-visual-setup');
     }
   }
 
   /**
-   * Setup bird animations
+   * Add enhanced visual effects to make the bird more appealing
+   */
+  private addVisualEffects(): void {
+    try {
+      // Add a subtle glow effect
+      this.setTint(0xffffff);
+      this.setPipeline('Light2D');
+      
+      // Add drop shadow effect
+      const shadow = this.scene.add.image(this.x + 2, this.y + 2, this.texture.key);
+      shadow.setScale(this.scaleX, this.scaleY);
+      shadow.setOrigin(0.5, 0.5);
+      shadow.setTint(0x000000);
+      shadow.setAlpha(0.3);
+      shadow.setDepth(this.depth - 1);
+      
+      // Create wing trail particles
+      this.createWingTrail();
+      
+    } catch (error) {
+      ErrorHandler.handleGameplayError(error as Error, 'bird-visual-effects');
+    }
+  }
+
+  /**
+   * Create wing trail particle effect
+   */
+  private createWingTrail(): void {
+    try {
+      // Create particle emitter for wing trail
+      const particles = this.scene.add.particles(this.x, this.y, 'bird', {
+        scale: { start: 0.1, end: 0 },
+        speed: { min: 20, max: 40 },
+        lifespan: 200,
+        alpha: { start: 0.6, end: 0 },
+        tint: [0x87ceeb, 0x98fb98, 0xf0e68c],
+        quantity: 2,
+        frequency: 100,
+        follow: this,
+        followOffset: { x: -10, y: 0 }
+      });
+      
+      particles.setDepth(this.depth - 0.5);
+      
+    } catch (error) {
+      // Particle effects are optional
+      console.warn('Could not create wing trail particles:', error);
+    }
+  }
+
+  /**
+   * Setup enhanced bird animations
    */
   private setupAnimations(): void {
     try {
-      // Create flap animation if frames exist
+      // Create enhanced flap animation with better effects
       if (this.scene.textures.exists('bird_frame_up')) {
         const key = 'bird-flap';
         if (!this.scene.anims.exists(key)) {
@@ -114,17 +168,58 @@ export default class Bird extends Phaser.Physics.Arcade.Sprite {
               { key: 'bird_frame_down' },
               { key: 'bird_frame_mid' }
             ],
-            frameRate: 12,
+            frameRate: 15, // Slightly faster for more dynamic feel
             repeat: -1
           });
         }
         this.play(key);
       }
-      // Gentle idle bob (kept)
+      
+      // Enhanced idle animation with breathing effect
       this.createIdleAnimation();
+      
+      // Add wing flap intensity based on state
+      this.createStateBasedAnimations();
       
     } catch (error) {
       ErrorHandler.handleGameplayError(error as Error, 'bird-animation-setup');
+    }
+  }
+
+  /**
+   * Create state-based animation variations
+   */
+  private createStateBasedAnimations(): void {
+    try {
+      // Create different animation speeds for different states
+      const frames = [
+        { key: 'bird_frame_up' },
+        { key: 'bird_frame_mid' },
+        { key: 'bird_frame_down' },
+        { key: 'bird_frame_mid' }
+      ];
+      
+      // Fast flap for jumping
+      if (!this.scene.anims.exists('bird-flap-fast')) {
+        this.scene.anims.create({
+          key: 'bird-flap-fast',
+          frames: frames,
+          frameRate: 25,
+          repeat: 3 // Limited repeats for jump burst
+        });
+      }
+      
+      // Slow flap for falling
+      if (!this.scene.anims.exists('bird-flap-slow')) {
+        this.scene.anims.create({
+          key: 'bird-flap-slow',
+          frames: frames,
+          frameRate: 8,
+          repeat: -1
+        });
+      }
+    } catch (error) {
+      ErrorHandler.handleGameplayError(error as Error, 'bird-state-animations');
     }
   }
 
@@ -147,7 +242,7 @@ export default class Bird extends Phaser.Physics.Arcade.Sprite {
   }
 
   /**
-   * Make the bird jump
+   * Enhanced jump with improved visuals and animations
    */
   jump(): void {
     if (!this.isAlive) return;
@@ -163,14 +258,34 @@ export default class Bird extends Phaser.Physics.Arcade.Sprite {
       if (this.body) {
         const body = this.body as Phaser.Physics.Arcade.Body;
         
-  // Apply jump force (reset downward velocity first for consistent feel)
-  body.setVelocityY(this.jumpForce);
+        // Apply jump force (reset downward velocity first for consistent feel)
+        body.setVelocityY(this.jumpForce);
         
         // Update last jump time
         this.lastJumpTime = currentTime;
 
-  // Set state to JUMP
-  this.setBirdState(BirdState.JUMP);
+        // Set state to JUMP with enhanced animation
+        this.setBirdState(BirdState.JUMP);
+        
+        // Play enhanced jump animation
+        if (this.scene.anims.exists('bird-flap-fast')) {
+          this.play('bird-flap-fast');
+        }
+        
+        // Add jump flash effect
+        this.setTint(0xffffff);
+        this.scene.tweens.add({
+          targets: this,
+          alpha: 1.2,
+          duration: 100,
+          yoyo: true,
+          ease: 'Power2'
+        });
+        
+        // Add screen shake effect for impact
+        if (this.scene.cameras.main) {
+          this.scene.cameras.main.shake(50, 0.01);
+        }
         
         // Play jump sound
         try {
@@ -181,17 +296,8 @@ export default class Bird extends Phaser.Physics.Arcade.Sprite {
           // Audio is optional, continue without it
         }
         
-        // Create jump particle effect
-        try {
-          const ParticleEffects = require('../effects/ParticleEffects').default;
-          // This would need to be passed from the game scene
-          // For now, we'll handle it in the game scene
-        } catch (effectError) {
-          // Effects are optional
-        }
-        
-  // Create jump animation effect
-  this.createJumpEffect();
+        // Create enhanced jump effect
+        this.createJumpEffect();
         
         // Stop idle animation during jump
         if (this.animationTween) {
@@ -204,24 +310,87 @@ export default class Bird extends Phaser.Physics.Arcade.Sprite {
   }
 
   /**
-   * Create visual effect for jump
+   * Create enhanced visual effect for jump with particles and impact
    */
   private createJumpEffect(): void {
     try {
       // Quick scale animation for jump feedback
       this.scene.tweens.add({
         targets: this,
-        scaleX: GAME_CONSTANTS.BIRD_SCALE * 1.1,
-        scaleY: GAME_CONSTANTS.BIRD_SCALE * 0.9,
-        duration: 100,
-        ease: 'Power2',
+        scaleX: GAME_CONSTANTS.BIRD_SCALE * 1.2,
+        scaleY: GAME_CONSTANTS.BIRD_SCALE * 0.8,
+        duration: 80,
+        ease: 'Back.easeOut',
         yoyo: true,
         onComplete: () => {
           this.setScale(GAME_CONSTANTS.BIRD_SCALE);
         }
       });
+
+      // Add burst particle effect
+      try {
+        const burstParticles = this.scene.add.particles(this.x, this.y, 'bird', {
+          scale: { start: 0.3, end: 0 },
+          speed: { min: 50, max: 100 },
+          lifespan: 300,
+          alpha: { start: 1, end: 0 },
+          tint: [0xffd700, 0xff6347, 0x87ceeb],
+          quantity: 8,
+          radial: true,
+          angle: { min: 0, max: 360 }
+        });
+
+        // Remove particles after burst
+        this.scene.time.delayedCall(300, () => {
+          burstParticles.destroy();
+        });
+      } catch (particleError) {
+        // Particle effects are optional
+      }
+
+      // Add feather trail effect
+      this.createFeatherTrail();
+
     } catch (error) {
       ErrorHandler.handleGameplayError(error as Error, 'bird-jump-effect');
+    }
+  }
+
+  /**
+   * Create feather trail effect
+   */
+  private createFeatherTrail(): void {
+    try {
+      // Create several feather sprites that fall behind the bird
+      for (let i = 0; i < 3; i++) {
+        const feather = this.scene.add.image(
+          this.x - (i * 10) - 15,
+          this.y + Phaser.Math.Between(-5, 5),
+          'bird'
+        );
+        
+        feather.setScale(0.2);
+        feather.setAlpha(0.7);
+        feather.setTint(0xffffff);
+        feather.setDepth(this.depth - 1);
+        
+        // Animate feather falling and fading
+        this.scene.tweens.add({
+          targets: feather,
+          y: feather.y + Phaser.Math.Between(30, 60),
+          x: feather.x - Phaser.Math.Between(20, 40),
+          rotation: Phaser.Math.Between(-1, 1),
+          alpha: 0,
+          scale: 0.05,
+          duration: 800,
+          ease: 'Quad.easeOut',
+          onComplete: () => {
+            feather.destroy();
+          }
+        });
+      }
+    } catch (error) {
+      // Feather effects are optional
     }
   }
 
@@ -364,14 +533,63 @@ export default class Bird extends Phaser.Physics.Arcade.Sprite {
       // Check if bird is out of bounds
       this.checkBounds();
       this.stateTimer += this.scene.game.loop.delta;
-      // If in JUMP state for >200ms and moving downward, switch to FALL
+      
+      // State-based animation switching
       if (this.state === BirdState.JUMP && this.stateTimer > 200 && this.body && (this.body as Phaser.Physics.Arcade.Body).velocity.y > 0) {
         this.setBirdState(BirdState.FALL);
       }
+      
+      // Update animations based on current state
+      this.updateStateAnimations();
+      
       this.updateOutline();
       
     } catch (error) {
       ErrorHandler.handleGameplayError(error as Error, 'bird-update');
+    }
+  }
+
+  /**
+   * Update animations based on current bird state
+   */
+  private updateStateAnimations(): void {
+    try {
+      const velocity = this.body ? (this.body as Phaser.Physics.Arcade.Body).velocity.y : 0;
+      
+      switch (this.state) {
+        case BirdState.IDLE:
+          if (!this.anims.isPlaying || this.anims.currentAnim?.key !== 'bird-flap') {
+            if (this.scene.anims.exists('bird-flap')) {
+              this.play('bird-flap');
+            }
+          }
+          break;
+          
+        case BirdState.JUMP:
+          if (!this.anims.isPlaying || this.anims.currentAnim?.key !== 'bird-flap-fast') {
+            if (this.scene.anims.exists('bird-flap-fast')) {
+              this.play('bird-flap-fast');
+            }
+          }
+          break;
+          
+        case BirdState.FALL:
+          if (velocity > 200) {
+            // Falling fast - use slow animation
+            if (!this.anims.isPlaying || this.anims.currentAnim?.key !== 'bird-flap-slow') {
+              if (this.scene.anims.exists('bird-flap-slow')) {
+                this.play('bird-flap-slow');
+              }
+            }
+          }
+          break;
+          
+        case BirdState.DEAD:
+          this.stop();
+          break;
+      }
+    } catch (error) {
+      ErrorHandler.handleGameplayError(error as Error, 'bird-animation-update');
     }
   }
 

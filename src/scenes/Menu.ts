@@ -1,4 +1,6 @@
 import 'phaser';
+import AudioManager from '../managers/AudioManager';
+import StorageManager from '../managers/StorageManager';
 
 export default class Menu extends Phaser.Scene {
   private terminalText!: Phaser.GameObjects.Text;
@@ -7,6 +9,9 @@ export default class Menu extends Phaser.Scene {
   private cursor!: Phaser.GameObjects.Text;
   private isTransitioning: boolean = false;
   private bootSequenceComplete: boolean = false;
+  private startButton?: Phaser.GameObjects.Rectangle;
+  private startLabel?: Phaser.GameObjects.Text;
+  private audioStatusText?: Phaser.GameObjects.Text;
 
   constructor() {
     super('Menu');
@@ -23,6 +28,10 @@ export default class Menu extends Phaser.Scene {
     
     // Setup input
     this.setupInput();
+
+  // Start background music (if asset present)
+  const audio = AudioManager.getInstance(this);
+  audio.playBackgroundMusic();
   }
 
   private createTerminalBackground(): void {
@@ -172,6 +181,9 @@ export default class Menu extends Phaser.Scene {
       yoyo: true,
       repeat: -1
     });
+
+  // Add quick start button (improved UX)
+  this.createStartButton();
   }
 
   private typePromptSequence(messages: string[], index: number): void {
@@ -215,6 +227,97 @@ export default class Menu extends Phaser.Scene {
   this.input.keyboard?.on('keydown-SPACE', () => { this.fastForwardOrStart(); });
 
     this.input.keyboard?.on('keydown-ENTER', () => { this.fastForwardOrStart(); });
+
+    // M -> mute/unmute audio
+    this.input.keyboard?.on('keydown-M', () => {
+      const audio = AudioManager.getInstance(this);
+      audio.setEnabled(!audio.isAudioEnabled());
+      this.updateAudioStatus();
+    });
+
+    // +/- adjust volume
+    this.input.keyboard?.on('keydown-PLUS', () => { this.adjustVolume(0.05); });
+    this.input.keyboard?.on('keydown-ADD', () => { this.adjustVolume(0.05); });
+    this.input.keyboard?.on('keydown-EQUALS', () => { this.adjustVolume(0.05); });
+    this.input.keyboard?.on('keydown-MINUS', () => { this.adjustVolume(-0.05); });
+    this.input.keyboard?.on('keydown-B', () => {
+      const audio = AudioManager.getInstance(this);
+      const bg = (audio as any).sounds?.get?.('background');
+      if (bg && bg.isPlaying) {
+        audio.stopBackgroundMusic();
+      } else {
+        audio.playBackgroundMusic();
+      }
+    });
+  }
+
+  private createStartButton(): void {
+    const btnWidth = 240;
+    const btnHeight = 60;
+    const y = 520;
+    this.startButton = this.add.rectangle(400, y, btnWidth, btnHeight, 0x1E1E1E, 0.8)
+      .setStrokeStyle(2, 0x00ff66)
+      .setInteractive({ useHandCursor: true })
+      .on('pointerover', () => {
+        this.startButton?.setFillStyle(0x2A2A2A, 0.9);
+        this.tweens.add({ targets: this.startButton, scaleX: 1.03, scaleY: 1.05, duration: 120 });
+      })
+      .on('pointerout', () => {
+        this.startButton?.setFillStyle(0x1E1E1E, 0.8);
+        this.tweens.add({ targets: this.startButton, scaleX: 1, scaleY: 1, duration: 120 });
+      })
+      .on('pointerdown', () => {
+        this.fastForwardOrStart();
+      });
+
+    this.startLabel = this.add.text(400, y, 'START GAME', {
+      fontSize: '22px',
+      fontFamily: 'monospace',
+      color: '#00FF88'
+    }).setOrigin(0.5);
+
+    this.tweens.add({
+      targets: this.startButton,
+      alpha: { from: 0, to: 0.8 },
+      duration: 400,
+      ease: 'Sine.Out'
+    });
+    this.tweens.add({
+      targets: this.startLabel,
+      alpha: { from: 0, to: 1 },
+      duration: 600,
+      ease: 'Sine.Out'
+    });
+
+    // Audio status indicator
+    this.audioStatusText = this.add.text(780, 20, '', {
+      fontSize: '12px',
+      fontFamily: 'monospace',
+      color: '#00FF00',
+      align: 'right'
+    }).setOrigin(1, 0);
+    this.updateAudioStatus();
+
+    // Music toggle hint
+    this.add.text(780, 50, '[B] music  [M] mute  [+/-] vol', {
+      fontSize: '11px',
+      fontFamily: 'monospace',
+      color: '#888888',
+      align: 'right'
+    }).setOrigin(1,0);
+  }
+
+  private adjustVolume(delta: number): void {
+    const audio = AudioManager.getInstance(this);
+    const newVol = Math.round(Math.min(1, Math.max(0, audio.getVolume() + delta)) * 100) / 100;
+    audio.setVolume(newVol);
+    this.updateAudioStatus();
+  }
+
+  private updateAudioStatus(): void {
+    if (!this.audioStatusText) return;
+    const audio = AudioManager.getInstance(this);
+    this.audioStatusText.setText(`Audio: ${audio.isAudioEnabled() ? 'ON' : 'OFF'}  Vol: ${(audio.getVolume()*100)|0}%\n[M] Toggle  [+/-] Vol`);
   }
 
   private fastForwardOrStart(): void {

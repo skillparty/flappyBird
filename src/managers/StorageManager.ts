@@ -4,6 +4,7 @@ export default class StorageManager {
   private static cachedAvailability: boolean | undefined;
   private static readonly KEYS = {
     HIGH_SCORE: 'flappyBird_highScore',
+  LEADERBOARD: 'flappyBird_leaderboard',
     SELECTED_CHARACTER: 'flappyBird_selectedCharacter',
     AUDIO_ENABLED: 'flappyBird_audioEnabled',
     AUDIO_VOLUME: 'flappyBird_audioVolume',
@@ -65,8 +66,43 @@ export default class StorageManager {
 
       localStorage.setItem(this.KEYS.HIGH_SCORE, score.toString());
       console.log(`High score saved: ${score}`);
+      // También actualizar leaderboard
+      this.addScoreToLeaderboard(score);
     } catch (error) {
       ErrorHandler.handleStorageError(error as Error, 'set-high-score');
+    }
+  }
+
+  /**
+   * Obtener leaderboard (top 5)
+   */
+  static getLeaderboard(): number[] {
+    try {
+      if (!this.isStorageAvailable()) return [];
+      const stored = localStorage.getItem(this.KEYS.LEADERBOARD);
+      if (!stored) return [];
+      const arr = JSON.parse(stored);
+      if (!Array.isArray(arr)) return [];
+      return arr.filter(n => typeof n === 'number' && n >= 0).slice(0, 5);
+    } catch (error) {
+      ErrorHandler.handleStorageError(error as Error, 'get-leaderboard');
+      return [];
+    }
+  }
+
+  /**
+   * Añadir una puntuación al leaderboard manteniendo orden descendente y máximo 5
+   */
+  static addScoreToLeaderboard(score: number): void {
+    try {
+      if (!this.isStorageAvailable()) return;
+      if (isNaN(score) || score < 0) return;
+      const current = this.getLeaderboard();
+      current.push(score);
+      const sorted = current.sort((a, b) => b - a).slice(0, 5);
+      localStorage.setItem(this.KEYS.LEADERBOARD, JSON.stringify(sorted));
+    } catch (error) {
+      ErrorHandler.handleStorageError(error as Error, 'add-leaderboard-score');
     }
   }
 
