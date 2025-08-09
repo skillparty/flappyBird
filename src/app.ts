@@ -48,6 +48,9 @@ let coinScore = 0;              // cantidad de monedas recogidas
 let coinPoints = 0;             // puntos acumulados (valor base * multiplicador)
 let coinStreak = 0;             // racha actual de monedas sin morir
 let bestMultiplier = 1;         // mejor multiplicador alcanzado en la partida actual
+let previousLevel = 1;          // para detectar subidas de nivel
+let scorePanel: Phaser.GameObjects.Rectangle; // fondo del marcador
+let dayCycleTime = 0;           // acumulador para ciclo día-noche
 // Audio
 let mute = false;
 let muteButton: Phaser.GameObjects.Text;
@@ -300,6 +303,9 @@ function create(this: Phaser.Scene) {
   coins = this.physics.add.group();
   
   // UI: marcador (alineado a la izquierda para que no se corte)
+  // Panel translúcido detrás del marcador
+  scorePanel = this.add.rectangle(8, 8, 784, 40, 0x000000, 0.35).setOrigin(0, 0);
+  scorePanel.setStrokeStyle(2, 0xffffff, 0.5);
   scoreText = this.add.text(12, 12, formatScoreLine(), {
     fontSize: '22px',
     fontFamily: 'Arial',
@@ -308,6 +314,8 @@ function create(this: Phaser.Scene) {
     strokeThickness: 4
   });
   scoreText.setOrigin(0, 0);
+  scoreText.setDepth(10);
+  scorePanel.setDepth(5);
   
   // Instrucciones (se eliminará tras pasar el primer tubo)
   instructionText = this.add.text(400, 200,
@@ -341,6 +349,17 @@ function create(this: Phaser.Scene) {
   this.input.keyboard?.on('keydown-SPACE', handleInput, this);
   
   console.log('✅ Game world ready!');
+}
+
+function flashLevelUp(scene: Phaser.Scene, level: number) {
+  const txt = scene.add.text(400, 120, `Nivel ${level}!`, {
+    fontSize: '48px', fontFamily: 'Arial', color: '#FFE066', stroke: '#000', strokeThickness: 6
+  }).setOrigin(0.5).setScale(0.2);
+  scene.tweens.add({ targets: txt, scale: 1, duration: 300, ease: 'Back.Out' });
+  scene.tweens.add({ targets: txt, alpha: 0, delay: 900, duration: 600, onComplete: () => txt.destroy() });
+  // Breve flash de borde en el panel
+  scorePanel.setFillStyle(0xFFFFFF, 0.6);
+  scene.time.delayedCall(120, () => scorePanel.setFillStyle(0x000000, 0.35));
 }
 
 function handleInput(this: Phaser.Scene) {
@@ -552,6 +571,33 @@ function update(this: Phaser.Scene, time: number, delta: number) {
   
   // Mario Bros parallax scrolling
   updateMarioBrosParallax();
+
+  // Ciclo día-noche (90s ciclo completo)
+  dayCycleTime += delta;
+  const cycle = (dayCycleTime / 90000) % 1; // 0..1
+  // Interpolamos entre mañana (azul claro) -> tarde (naranja) -> noche (azul oscuro) -> amanecer
+  function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
+  let r: number, g: number, bC: number;
+  if (cycle < 0.33) { // mañana -> tarde
+    const t = cycle / 0.33;
+    r = lerp(0x5C, 0xFF, t);
+    g = lerp(0x94, 0x99, t);
+    bC = lerp(0xFC, 0x55, t);
+  } else if (cycle < 0.66) { // tarde -> noche
+    const t = (cycle - 0.33) / 0.33;
+    r = lerp(0xFF, 0x08, t);
+    g = lerp(0x99, 0x10, t);
+    bC = lerp(0x55, 0x40, t);
+  } else { // noche -> mañana
+    const t = (cycle - 0.66) / 0.34;
+    r = lerp(0x08, 0x5C, t);
+    g = lerp(0x10, 0x94, t);
+    bC = lerp(0x40, 0xFC, t);
+  }
+  const bgColor = ((r & 0xFF) << 16) + ((g & 0xFF) << 8) + (bC & 0xFF);
+  this.cameras.main.setBackgroundColor(bgColor);
+  // Tint leve al pez según momento del día (más cálido al atardecer)
+  bird.setTint(bgColor + 0x202020);
   
   if (!gameStarted) return;
   
@@ -590,6 +636,13 @@ function update(this: Phaser.Scene, time: number, delta: number) {
   if (pipeTimer > spawnInterval) {
     generatePipe.call(this);
     pipeTimer = 0;
+  }
+
+  // Detectar subida de nivel
+  const { level } = getDifficultyParams();
+  if (level !== previousLevel) {
+    flashLevelUp(this, level);
+    previousLevel = level;
   }
   
   // Update coins animation
