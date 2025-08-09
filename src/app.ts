@@ -51,6 +51,8 @@ let bestMultiplier = 1;         // mejor multiplicador alcanzado en la partida a
 let previousLevel = 1;          // para detectar subidas de nivel
 let scorePanel: Phaser.GameObjects.Rectangle; // fondo del marcador
 let dayCycleTime = 0;           // acumulador para ciclo día-noche
+let stars: Phaser.GameObjects.Group; // capa de estrellas
+let birdGlow: Phaser.GameObjects.Sprite; // resplandor del pez
 // Audio
 let mute = false;
 let muteButton: Phaser.GameObjects.Text;
@@ -274,6 +276,13 @@ function create(this: Phaser.Scene) {
   
   // Create Mario Bros background
   createMarioBrosBackground.call(this);
+  // Estrellas (inicialmente invisibles hasta noche)
+  stars = this.add.group();
+  for (let i = 0; i < 70; i++) {
+    const s = this.add.rectangle(Phaser.Math.Between(0, 800), Phaser.Math.Between(0, 400), 2, 2, 0xFFFFFF, Phaser.Math.FloatBetween(0.4, 1));
+    s.setAlpha(0); // se hará fade in de noche
+    stars.add(s);
+  }
   
   // Create ground
   ground = this.add.tileSprite(0, 540, 800, 60, 'ground');
@@ -288,6 +297,9 @@ function create(this: Phaser.Scene) {
   
   // Create Cheep Cheep
   bird = this.physics.add.sprite(150, 300, 'cheepCheep');
+  // Glow del pez (sprite reutiliza misma textura con tint y blend)
+  birdGlow = this.add.sprite(bird.x, bird.y, 'cheepCheep').setTint(0xFFFFAA).setAlpha(0).setScale(1.2);
+  birdGlow.setBlendMode(Phaser.BlendModes.ADD);
   bird.setScale(1.0);
   (bird.body as Phaser.Physics.Arcade.Body).setSize(30, 20);
   bird.setCollideWorldBounds(false);
@@ -598,6 +610,21 @@ function update(this: Phaser.Scene, time: number, delta: number) {
   this.cameras.main.setBackgroundColor(bgColor);
   // Tint leve al pez según momento del día (más cálido al atardecer)
   bird.setTint(bgColor + 0x202020);
+  birdGlow.x = bird.x;
+  birdGlow.y = bird.y;
+  // Intensidad del glow basada en multiplicador (>2x empieza)
+  const mult = getCurrentMultiplier();
+  const targetGlow = mult > 2 ? Math.min(1, (mult - 2) / 1.5) : 0;
+  birdGlow.setAlpha(Phaser.Math.Linear(birdGlow.alpha, targetGlow, 0.1));
+
+  // Estrellas: visibles sólo en la parte nocturna (cycle >= 0.5)
+  const nightFactor = cycle < 0.5 ? 0 : (cycle - 0.5) / 0.5; // 0 a 1
+  stars.children.entries.forEach((s: any, idx: number) => {
+    const baseAlpha = s.data?.get('baseAlpha') || s.alpha || 1;
+    if (!s.data) s.setDataEnabled();
+    if (!s.data.has('baseAlpha')) s.data.set('baseAlpha', baseAlpha);
+    s.alpha = baseAlpha * nightFactor * (0.6 + Math.sin(time * 0.001 + idx) * 0.4);
+  });
   
   if (!gameStarted) return;
   
