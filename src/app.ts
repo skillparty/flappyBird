@@ -44,8 +44,10 @@ let hills: Phaser.GameObjects.Group; // reutilizamos el nombre para los pinos
 
 // Mario Bros coins system
 let coins: Phaser.Physics.Arcade.Group;
-let coinScore = 0;
-let coinPoints = 0; // puntos acumulados de monedas (valor escalado)
+let coinScore = 0;              // cantidad de monedas recogidas
+let coinPoints = 0;             // puntos acumulados (valor base * multiplicador)
+let coinStreak = 0;             // racha actual de monedas sin morir
+let bestMultiplier = 1;         // mejor multiplicador alcanzado en la partida actual
 // Audio
 let mute = false;
 let muteButton: Phaser.GameObjects.Text;
@@ -93,9 +95,22 @@ function getDifficultyParams() {
 
 function formatScoreLine() {
   const { level } = getDifficultyParams();
-  const coinValue = 10 + (level - 1) * 2; // escala lineal: lvl1=10, lvl10=28
-  const totalScore = score + coinScore * coinValue;
-  return `Nivel: ${level} | Monedas(${coinValue}) x${coinScore} | Tuberías: ${score} | Total: ${totalScore}`;
+  const baseValue = getBaseCoinValue(level);
+  const mult = getCurrentMultiplier();
+  const totalScore = score + coinPoints;
+  return `Nivel: ${level} | Monedas: ${coinScore} (${coinPoints}) | Mult: ${mult.toFixed(2)}x | Tuberías: ${score} | Total: ${totalScore}`;
+}
+
+// Valor base no lineal de moneda (crecimiento exponencial suave)
+function getBaseCoinValue(level: number) {
+  return Math.round(10 * Math.pow(1.15, level - 1)); // lvl1=10, lvl10~31
+}
+
+// Multiplicador por racha: +5% por moneda hasta un máximo (tope configurable)
+function getCurrentMultiplier() {
+  const maxStreakForGrowth = 50; // después de 50 deja de crecer
+  const effective = Math.min(coinStreak, maxStreakForGrowth);
+  return 1 + effective * 0.05; // 1.. (1+50*0.05)=3.5x (tope actual)
 }
 
 function preload(this: Phaser.Scene) {
@@ -248,6 +263,8 @@ function create(this: Phaser.Scene) {
   score = 0;
   coinScore = 0;
   coinPoints = 0;
+  coinStreak = 0;
+  bestMultiplier = 1;
   gameOver = false;
   gameStarted = false;
   pipeTimer = 0;
@@ -359,9 +376,17 @@ function collectCoin(this: Phaser.Scene, cheepCheep: any, coin: any) {
   
   // Add coin score (count + scaled points)
   coinScore++;
+  coinStreak++;
   const { level } = getDifficultyParams();
-  const coinValue = 10 + (level - 1) * 2;
-  coinPoints += coinValue;
+  const baseValue = getBaseCoinValue(level);
+  const mult = getCurrentMultiplier();
+  bestMultiplier = Math.max(bestMultiplier, mult);
+  const gained = Math.round(baseValue * mult);
+  coinPoints += gained;
+  // Texto flotante de ganancia
+  const floatText = this.add.text(coin.x, coin.y - 20, `+${gained}`, { fontSize: '16px', fontFamily: 'Arial', color: '#FFFF55', stroke: '#000', strokeThickness: 3 });
+  floatText.setDepth(1000).setOrigin(0.5);
+  this.tweens.add({ targets: floatText, y: floatText.y - 30, alpha: 0, duration: 700, ease: 'Cubic.easeOut', onComplete: () => floatText.destroy() });
   scoreText.setText(formatScoreLine());
   playTone(this, 1180, 160, 'triangle');
   
@@ -439,9 +464,8 @@ function handleGameOver(this: Phaser.Scene) {
   }).setOrigin(0.5);
   
   const { level } = getDifficultyParams();
-  const coinValue = 10 + (level - 1) * 2; // consistente con formatScoreLine
-  const totalScore = score + coinScore * coinValue;
-  this.add.text(400, 340, `Tuberías: ${score} | Monedas: ${coinScore} (x${coinValue})`, {
+  const totalScore = score + coinPoints;
+  this.add.text(400, 340, `Tuberías: ${score} | Monedas: ${coinScore} (${coinPoints})`, {
     fontSize: '20px',
     fontFamily: 'Arial',
     color: '#FFFFFF',
@@ -467,6 +491,10 @@ function handleGameOver(this: Phaser.Scene) {
   
   // Save high score (using total score)
   const highScore = parseInt(localStorage.getItem('flappyHighScore') || '0');
+  const bestMultStored = parseFloat(localStorage.getItem('flappyBestMultiplier') || '1');
+  if (bestMultiplier > bestMultStored) {
+    localStorage.setItem('flappyBestMultiplier', bestMultiplier.toFixed(2));
+  }
   if (totalScore > highScore) {
     localStorage.setItem('flappyHighScore', totalScore.toString());
   this.add.text(400, 420, '¡NUEVO RÉCORD!', {
@@ -485,6 +513,14 @@ function handleGameOver(this: Phaser.Scene) {
       strokeThickness: 2
     }).setOrigin(0.5);
   }
+  const bestMult = parseFloat(localStorage.getItem('flappyBestMultiplier') || bestMultiplier.toFixed(2));
+  this.add.text(400, 445, `Mejor Mult: ${bestMult.toFixed(2)}x`, {
+    fontSize: '18px',
+    fontFamily: 'Arial',
+    color: '#FFA500',
+    stroke: '#000000',
+    strokeThickness: 3
+  }).setOrigin(0.5);
 }
 
 function updateMarioBrosParallax() {
