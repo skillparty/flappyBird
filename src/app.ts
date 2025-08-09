@@ -73,6 +73,29 @@ function playTone(
   osc.stop(ctx.currentTime + durationMs / 1000);
 }
 
+// Dificultad progresiva
+function getDifficultyFactor(): number {
+  // Escala de 0 a 1 alcanzada aprox en 40 tuberías
+  return Math.min(1, score / 40);
+}
+
+function getDifficultyParams() {
+  const f = getDifficultyFactor();
+  return {
+    gapSize: Math.round(180 - f * 60),            // 180 -> 120
+    pipeSpeed: -200 - f * 150,                    // -200 -> -350
+    spawnInterval: 1800 - f * 900,                // 1800ms -> 900ms
+    coinChance: 0.4 - f * 0.15,                   // 40% -> 25%
+    level: 1 + Math.floor(f * 9)                  // 1..10
+  } as const;
+}
+
+function formatScoreLine() {
+  const { level } = getDifficultyParams();
+  const totalScore = score + (coinScore * 10);
+  return `Nivel: ${level} | Tuberías: ${score} | Monedas: ${coinScore} | Total: ${totalScore}`;
+}
+
 function preload(this: Phaser.Scene) {
   console.log('🎮 Loading game assets...');
   
@@ -257,7 +280,7 @@ function create(this: Phaser.Scene) {
   coins = this.physics.add.group();
   
   // UI: marcador (alineado a la izquierda para que no se corte)
-  scoreText = this.add.text(12, 12, `Tuberías: ${score} | Monedas: ${coinScore} | Total: 0`, {
+  scoreText = this.add.text(12, 12, formatScoreLine(), {
     fontSize: '22px',
     fontFamily: 'Arial',
     color: '#FFFFFF',
@@ -333,8 +356,7 @@ function collectCoin(this: Phaser.Scene, cheepCheep: any, coin: any) {
   
   // Add coin score
   coinScore++;
-  const totalScore = score + (coinScore * 10);
-  scoreText.setText(`Tuberías: ${score} | Monedas: ${coinScore} | Total: ${totalScore}`);
+  scoreText.setText(formatScoreLine());
   playTone(this, 1180, 160, 'triangle');
   
   // Destroy coin
@@ -346,7 +368,7 @@ function collectCoin(this: Phaser.Scene, cheepCheep: any, coin: any) {
 function generatePipe(this: Phaser.Scene) {
   if (gameOver) return;
   
-  const gapSize = 180;
+  const { gapSize, pipeSpeed, coinChance } = getDifficultyParams();
   const minY = 150;
   const maxY = 400;
   const gapY = Phaser.Math.Between(minY, maxY);
@@ -356,7 +378,7 @@ function generatePipe(this: Phaser.Scene) {
   topPipe.setOrigin(0.5, 1);
   topPipe.setFlipY(true);
   topPipe.body.setImmovable(true);
-  topPipe.body.setVelocityX(-200);
+  topPipe.body.setVelocityX(pipeSpeed);
   topPipe.body.setVelocityY(0);
   topPipe.body.setGravityY(-1000); // Cancel gravity
   topPipe.setData('scored', false);
@@ -365,16 +387,16 @@ function generatePipe(this: Phaser.Scene) {
   const bottomPipe = pipes.create(850, gapY + gapSize/2, 'pipe');
   bottomPipe.setOrigin(0.5, 0);
   bottomPipe.body.setImmovable(true);
-  bottomPipe.body.setVelocityX(-200);
+  bottomPipe.body.setVelocityX(pipeSpeed);
   bottomPipe.body.setVelocityY(0);
   bottomPipe.body.setGravityY(-1000); // Cancel gravity
   bottomPipe.setData('scored', false);
   
   // 40% chance to spawn a coin between pipes
-  if (Math.random() < 0.4) {
+  if (Math.random() < coinChance) {
     const coin = coins.create(850, gapY, 'coin');
     coin.setScale(0.8);
-    coin.body.setVelocityX(-200);
+  coin.body.setVelocityX(pipeSpeed);
     coin.body.setVelocityY(0);
     coin.body.setGravityY(-1000); // Cancel gravity
     coin.setData('rotationSpeed', 0.1);
@@ -520,7 +542,8 @@ function update(this: Phaser.Scene, time: number, delta: number) {
   
   // Generate pipes
   pipeTimer += delta;
-  if (pipeTimer > 1800) {
+  const { spawnInterval, pipeSpeed } = getDifficultyParams();
+  if (pipeTimer > spawnInterval) {
     generatePipe.call(this);
     pipeTimer = 0;
   }
@@ -530,8 +553,9 @@ function update(this: Phaser.Scene, time: number, delta: number) {
     if (coin.body) {
       // Ensure coins don't fall
       coin.body.setVelocityY(0);
-      if (Math.abs(coin.body.velocity.x + 200) > 10) {
-        coin.body.setVelocityX(-200);
+      const { pipeSpeed } = getDifficultyParams();
+      if (Math.abs(coin.body.velocity.x - pipeSpeed) > 10) {
+        coin.body.setVelocityX(pipeSpeed);
       }
       
       // Rotate coin for classic Mario effect
@@ -553,8 +577,9 @@ function update(this: Phaser.Scene, time: number, delta: number) {
     // Ensure pipes don't fall
     if (pipe.body) {
       pipe.body.setVelocityY(0);
-      if (Math.abs(pipe.body.velocity.x + 200) > 10) {
-        pipe.body.setVelocityX(-200);
+      const { pipeSpeed } = getDifficultyParams();
+      if (Math.abs(pipe.body.velocity.x - pipeSpeed) > 10) {
+        pipe.body.setVelocityX(pipeSpeed);
       }
     }
     
@@ -568,9 +593,8 @@ function update(this: Phaser.Scene, time: number, delta: number) {
     if (!pipe.getData('scored') && pipe.x < bird.x) {
       pipe.setData('scored', true);
       if (pipe.flipY) { // Only count top pipe
-        score++;
-        const totalScore = score + (coinScore * 10);
-        scoreText.setText(`Tuberías: ${score} | Monedas: ${coinScore} | Total: ${totalScore}`);
+  score++;
+  scoreText.setText(formatScoreLine());
         if (score === 1 && instructionText) {
           instructionText.destroy();
           instructionText = undefined;
