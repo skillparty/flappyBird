@@ -87,24 +87,63 @@ export default class Preload extends Phaser.Scene {
     
     // Create stable, high-quality sprites
     
-    // Bird - Golden with better proportions
-    graphics.fillStyle(0xFFD700);
-    graphics.fillRoundedRect(0, 0, 34, 24, 4);
-    graphics.fillStyle(0xFFA500);
-    graphics.fillCircle(8, 12, 3); // Eye
-    graphics.fillStyle(0xFF8C00);
-    graphics.fillTriangle(0, 12, -6, 8, -6, 16); // Beak
-    graphics.generateTexture('bird', 34, 24);
-    
-    // Pipe - More detailed green pipe
+    // Bird animation frames (wing up, mid, down) - more professional styled simple vector
+    const birdFrames = ['bird_frame_up','bird_frame_mid','bird_frame_down'];
+    const wingOffsets = [-4,0,4];
+    for (let i=0;i<birdFrames.length;i++) {
+      graphics.clear();
+      // Body gradient illusion: draw two overlapping rounded rects
+      graphics.fillStyle(0xFFC94D);
+      graphics.fillRoundedRect(0, 0, 36, 26, 6);
+      graphics.fillStyle(0xFFB027);
+      graphics.fillRoundedRect(2, 2, 32, 22, 6);
+      // Wing
+      graphics.fillStyle(0xE0901E);
+      graphics.fillRoundedRect(14, 8 + wingOffsets[i], 14, 10, 4);
+      // Eye
+      graphics.fillStyle(0xFFFFFF);
+      graphics.fillCircle(10, 11, 4);
+      graphics.fillStyle(0x000000);
+      graphics.fillCircle(11, 11, 2);
+      // Beak (two-tone)
+      graphics.fillStyle(0xFF8C00);
+      graphics.fillTriangle(0, 13, -7, 10, -7, 16);
+      graphics.fillStyle(0xFF7000);
+      graphics.fillTriangle(-1, 13, -5, 11, -5, 15);
+      graphics.generateTexture(birdFrames[i], 36, 26);
+    }
+    // Backwards compatibility main bird texture
     graphics.clear();
-    graphics.fillStyle(0x228B22);
-    graphics.fillRect(0, 0, 60, 400);
-    graphics.fillStyle(0x32CD32);
-    graphics.fillRect(5, 0, 50, 400);
-    graphics.fillStyle(0x228B22);
-    graphics.fillRect(-10, -20, 80, 40); // Pipe cap
-    graphics.generateTexture('pipe', 80, 420);
+    graphics.fillStyle(0xFFC94D);
+    graphics.fillRoundedRect(0, 0, 36, 26, 6);
+    graphics.fillStyle(0xFFB027);
+    graphics.fillRoundedRect(2, 2, 32, 22, 6);
+    graphics.fillStyle(0xFFFFFF);
+    graphics.fillCircle(10, 11, 4);
+    graphics.fillStyle(0x000000);
+    graphics.fillCircle(11, 11, 2);
+    graphics.fillStyle(0xFF8C00);
+    graphics.fillTriangle(0, 13, -7, 10, -7, 16);
+    graphics.generateTexture('bird', 36, 26);
+    
+  // Pipe - gradient & lip
+  graphics.clear();
+  const PIPE_W = 80; const PIPE_H = 420;
+  // Base shadow
+  graphics.fillStyle(0x166d16);
+  graphics.fillRect(0,0,PIPE_W,PIPE_H);
+  // Inner lighter area
+  graphics.fillStyle(0x2fb82f);
+  graphics.fillRect(6,0,PIPE_W-18,PIPE_H);
+  // Highlight stripe
+  graphics.fillStyle(0x55e055);
+  graphics.fillRect(58,0,8,PIPE_H);
+  // Cap
+  graphics.fillStyle(0x1e7e1e);
+  graphics.fillRect(-6,-28,PIPE_W+12,50);
+  graphics.fillStyle(0x3ad23a);
+  graphics.fillRect(0,-20,PIPE_W,34);
+  graphics.generateTexture('pipe', PIPE_W+12, PIPE_H+50);
     
     // Ground - Textured ground
     graphics.clear();

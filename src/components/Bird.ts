@@ -102,9 +102,26 @@ export default class Bird extends Phaser.Physics.Arcade.Sprite {
    */
   private setupAnimations(): void {
     try {
-  // Placeholder: real wing-flap frames would be added via spritesheet preload.
-  // For now keep idle tween and simple scale pulses as state feedback.
-  this.createIdleAnimation();
+      // Create flap animation if frames exist
+      if (this.scene.textures.exists('bird_frame_up')) {
+        const key = 'bird-flap';
+        if (!this.scene.anims.exists(key)) {
+          this.scene.anims.create({
+            key,
+            frames: [
+              { key: 'bird_frame_up' },
+              { key: 'bird_frame_mid' },
+              { key: 'bird_frame_down' },
+              { key: 'bird_frame_mid' }
+            ],
+            frameRate: 12,
+            repeat: -1
+          });
+        }
+        this.play(key);
+      }
+      // Gentle idle bob (kept)
+      this.createIdleAnimation();
       
     } catch (error) {
       ErrorHandler.handleGameplayError(error as Error, 'bird-animation-setup');
@@ -455,15 +472,22 @@ export default class Bird extends Phaser.Physics.Arcade.Sprite {
           break;
         case BirdState.JUMP:
           if (this.animationTween) this.animationTween.pause();
+          // Slight upward tilt instantly for responsiveness
+          this.setRotation(this.minRotation * (Math.PI/180));
           break;
         case BirdState.FALL:
           // Could adjust frame or tint
+          // Ensure flap continues
+          if (this.scene.anims.exists('bird-flap')) {
+            this.anims.play('bird-flap', true);
+          }
           break;
         case BirdState.HIT:
           this.setTint(0xff5555);
           break;
         case BirdState.DEAD:
           this.clearTint();
+          this.stop();
           break;
       }
     } catch (error) {

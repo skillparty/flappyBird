@@ -84,7 +84,7 @@ export default class Menu extends Phaser.Scene {
     
     if (message === '') {
       this.terminalText.setText(currentText + '\n');
-      this.time.delayedCall(100, () => {
+  this.time.delayedCall(60, () => {
         this.typeBootSequence(messages, index + 1, onComplete);
       });
       return;
@@ -95,10 +95,10 @@ export default class Menu extends Phaser.Scene {
       if (charIndex < message.length) {
         this.terminalText.setText(currentText + message.substring(0, charIndex + 1));
         charIndex++;
-        this.time.delayedCall(30, typeChar);
+  this.time.delayedCall(15, typeChar);
       } else {
         this.terminalText.setText(currentText + message + '\n');
-        this.time.delayedCall(200, () => {
+  this.time.delayedCall(80, () => {
           this.typeBootSequence(messages, index + 1, onComplete);
         });
       }
@@ -135,7 +135,7 @@ export default class Menu extends Phaser.Scene {
     this.tweens.add({
       targets: this.asciiArt,
       alpha: 1,
-      duration: 1000,
+  duration: 500,
       ease: 'Power2.easeOut',
       onComplete: () => {
         this.showGamePrompt();
@@ -193,7 +193,7 @@ export default class Menu extends Phaser.Scene {
     
     if (message === '') {
       this.promptText.setText(currentText + '\n');
-      this.time.delayedCall(100, () => {
+  this.time.delayedCall(60, () => {
         this.typePromptSequence(messages, index + 1);
       });
       return;
@@ -204,10 +204,10 @@ export default class Menu extends Phaser.Scene {
       if (charIndex < message.length) {
         this.promptText.setText(currentText + message.substring(0, charIndex + 1));
         charIndex++;
-        this.time.delayedCall(40, typeChar);
+  this.time.delayedCall(18, typeChar);
       } else {
         this.promptText.setText(currentText + message + '\n');
-        this.time.delayedCall(300, () => {
+  this.time.delayedCall(120, () => {
           this.typePromptSequence(messages, index + 1);
         });
       }
@@ -218,18 +218,26 @@ export default class Menu extends Phaser.Scene {
 
   private setupInput(): void {
     // Mouse input
-    this.input.on('pointerdown', () => {
-      this.startGame();
-    });
+  this.input.on('pointerdown', () => { this.fastForwardOrStart(); });
 
     // Keyboard input
-    this.input.keyboard?.on('keydown-SPACE', () => {
-      this.startGame();
-    });
+  this.input.keyboard?.on('keydown-SPACE', () => { this.fastForwardOrStart(); });
 
-    this.input.keyboard?.on('keydown-ENTER', () => {
-      this.startGame();
-    });
+    this.input.keyboard?.on('keydown-ENTER', () => { this.fastForwardOrStart(); });
+  }
+
+  private fastForwardOrStart(): void {
+    if (!this.bootSequenceComplete) {
+      // Skip remaining sequence instantly
+      this.bootSequenceComplete = true;
+      if (this.asciiArt) {
+        this.showGamePrompt();
+      } else {
+        this.showAsciiArt();
+      }
+      return;
+    }
+    this.startGame();
   }
 
   private startGame(): void {
