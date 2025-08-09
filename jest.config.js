@@ -1,25 +1,14 @@
+// Minimal Jest config after purging unused architecture (scenes/managers/components removed)
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
   roots: ['<rootDir>/src', '<rootDir>/tests'],
-  testMatch: [
-    '**/__tests__/**/*.+(ts|tsx|js)',
-    '**/*.(test|spec).+(ts|tsx|js)'
-  ],
-  transform: {
-    '^.+\\.(ts|tsx)$': 'ts-jest'
-  },
-  collectCoverageFrom: [
-    'src/**/*.{ts,tsx}',
-    '!src/**/*.d.ts',
-    '!src/app.ts',
-    '!src/index.html'
-  ],
+  // Only run the single retained test
+  testMatch: ['**/tests/app.test.ts'],
+  transform: { '^.+\\.(ts|tsx)$': 'ts-jest' },
+  collectCoverageFrom: ['src/app.ts'],
   coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html'],
+  coverageReporters: ['text', 'lcov'],
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
-  moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1'
-  },
-  testTimeout: 10000
+  testTimeout: 5000
 };

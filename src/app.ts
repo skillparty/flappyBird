@@ -1,4 +1,4 @@
-import 'phaser';
+import * as Phaser from 'phaser';
 
 // Simple and stable game configuration
 const config: Phaser.Types.Core.GameConfig = {
@@ -10,7 +10,7 @@ const config: Phaser.Types.Core.GameConfig = {
   physics: {
     default: 'arcade',
     arcade: {
-      gravity: { y: 1000 },
+      gravity: { x: 0, y: 1000 }, // supply x to satisfy Vector2Like
       debug: false
     }
   },
@@ -188,14 +188,15 @@ function create(this: Phaser.Scene) {
   
   // Create ground physics (invisible)
   const groundBody = this.physics.add.staticGroup();
-  const groundCollider = groundBody.create(400, 570, null);
+  // Use a defined texture key instead of null to satisfy typings
+  const groundCollider = groundBody.create(400, 570, 'ground');
   groundCollider.setSize(800, 60);
   groundCollider.setVisible(false);
   
   // Create Cheep Cheep
   bird = this.physics.add.sprite(150, 300, 'cheepCheep');
   bird.setScale(1.0);
-  bird.body.setSize(30, 20);
+  (bird.body as Phaser.Physics.Arcade.Body).setSize(30, 20);
   bird.setCollideWorldBounds(false);
   
   // Add swimming animation data
@@ -429,9 +430,10 @@ function update(this: Phaser.Scene, time: number, delta: number) {
   if (!gameStarted) return;
   
   // Cheep Cheep rotation and animation
-  if (bird.body.velocity.y > 0) {
+  const birdBody = bird.body as Phaser.Physics.Arcade.Body | null;
+  if (birdBody && birdBody.velocity.y > 0) {
     // Falling - rotate down slightly (Mario style)
-    bird.setRotation(Math.min(0.3, bird.body.velocity.y * 0.001));
+    bird.setRotation(Math.min(0.3, birdBody.velocity.y * 0.001));
   } else {
     // Rising - slight upward angle
     bird.setRotation(-0.2);

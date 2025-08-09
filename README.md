@@ -1,30 +1,16 @@
-# Flappy Bird - Clon Profesional
+# Flappy Bird Minimal
 
-Un clon profesional del clásico juego Flappy Bird construido con TypeScript, Phaser 3, Tailwind CSS y Vite. El juego incluye características modernas como diseño responsivo, accesibilidad completa, sistema de audio opcional, efectos visuales parallax y selección de personajes.
+Versión simplificada y estable de un clon de Flappy Bird hecha con **TypeScript**, **Phaser 3** y **Vite**. Se eliminaron escenas, managers y sistemas avanzados para dejar un único archivo `src/app.ts` fácil de leer y mantener.
 
 ## 🎮 Características
 
-### Características Principales
-- **Mecánicas clásicas de Flappy Bird**: Controla un pájaro que debe evitar obstáculos
-- **Sistema de puntuación**: Puntuación en tiempo real con guardado de récord personal
-- **Múltiples escenas**: Menú principal, juego, y pantalla de game over
-- **Diseño responsivo**: Funciona perfectamente en desktop y móvil
-- **Accesibilidad completa**: Soporte para lectores de pantalla y navegación por teclado
+### Estado Actual
+Minimal: solo lógica básica (pájaro, tuberías, monedas, puntuación y game over) dentro de una única escena definida en `app.ts`.
 
-### Características Opcionales
-- **Sistema de audio**: Efectos de sonido para salto, puntuación y colisiones
-- **Fondo parallax**: Múltiples capas de fondo con efecto de profundidad
-- **Selección de personajes**: 4 skins diferentes para el pájaro
-- **Optimización de rendimiento**: Ajustes automáticos para mantener 60 FPS
-- **Modo de alto contraste**: Soporte para preferencias de accesibilidad
+El resto de carpetas (components, managers, scenes, systems, etc.) fueron vaciadas (stubs) y están listas para eliminarse físicamente si se desea hacer un commit de limpieza adicional.
 
-## 🚀 Tecnologías Utilizadas
-
-- **TypeScript**: Tipado estático para mejor desarrollo
-- **Phaser 3**: Motor de juego 2D potente y flexible
-- **Tailwind CSS**: Framework CSS utilitario para UI moderna
-- **Vite**: Build tool rápido y moderno
-- **Jest**: Framework de testing para pruebas automatizadas
+## 🚀 Tecnologías
+TypeScript · Phaser 3 · Vite · Jest (solo 1 prueba mínima)
 
 ## 📦 Instalación y Ejecución
 
@@ -47,19 +33,12 @@ npm run dev
 # El juego estará disponible en http://localhost:6040
 ```
 
-### Scripts Disponibles
+### Scripts
 ```bash
-# Desarrollo
-npm run dev          # Servidor de desarrollo con hot reload
-
-# Construcción
-npm run build        # Construir para producción
-npm run preview      # Previsualizar build de producción
-
-# Testing
-npm run test         # Ejecutar tests una vez
-npm run test:watch   # Ejecutar tests en modo watch
-npm run test:coverage # Ejecutar tests con reporte de cobertura
+npm run dev       # Desarrollo
+npm run build     # Build producción
+npm run preview   # Servir build
+npm run test      # Ejecuta prueba mínima (app.test.ts)
 ```
 
 ## 🎯 Controles
@@ -74,183 +53,31 @@ npm run test:coverage # Ejecutar tests con reporte de cobertura
 - **Tecla TAB**: Navegar por elementos del menú
 - **Teclas de flecha**: Navegación alternativa en menús
 
-## 🏗️ Arquitectura del Proyecto
-
-### Estructura de Carpetas
+## 🏗️ Estructura Simplificada
 ```
 src/
-├── components/          # Componentes del juego
-│   ├── Bird.ts         # Componente del pájaro
-│   ├── PipeManager.ts  # Gestor de tuberías
-│   ├── ParallaxBackground.ts # Sistema de fondo parallax
-│   └── CharacterSelector.ts # Selector de personajes
-├── managers/           # Gestores del sistema
-│   ├── ScoreManager.ts # Gestión de puntuación
-│   ├── StorageManager.ts # Persistencia de datos
-│   ├── AssetManager.ts # Carga de recursos
-│   ├── AudioManager.ts # Sistema de audio
-│   ├── ErrorHandler.ts # Manejo de errores
-│   └── AccessibilityManager.ts # Accesibilidad
-├── scenes/             # Escenas del juego
-│   ├── Boot.ts         # Escena de arranque
-│   ├── Preload.ts      # Carga de recursos
-│   ├── Menu.ts         # Menú principal
-│   ├── Game.ts         # Juego principal
-│   └── GameOver.ts     # Pantalla de game over
-├── systems/            # Sistemas del juego
-│   ├── CollisionSystem.ts # Detección de colisiones
-│   ├── GameOverSystem.ts # Sistema de game over
-│   └── PerformanceManager.ts # Optimización de rendimiento
-├── types/              # Definiciones de tipos
-│   └── GameTypes.ts    # Interfaces y tipos
-└── config/             # Configuración
-    └── GameConfig.ts   # Configuración del juego
+  app.ts        # Único archivo con toda la lógica del juego
+tests/
+  app.test.ts   # Prueba mínima
 ```
 
-### Patrones de Diseño Utilizados
-- **Singleton**: Para managers globales (ScoreManager, AudioManager)
-- **Observer**: Para callbacks de eventos del juego
-- **Object Pool**: Para reutilización eficiente de sprites de tuberías
-- **Strategy**: Para diferentes estrategias de renderizado según rendimiento
+Carpetas legacy vacías (stubs) pendientes de borrado definitivo:
+`components/ managers/ scenes/ systems/ effects/ config/ types/`
 
 ## 🧪 Testing
+Se mantiene solo una prueba simple que valida que el juego se inicializa con el tamaño esperado. Si agregas nuevas features, añade nuevas pruebas.
 
-El proyecto incluye un sistema completo de testing automatizado:
-
-### Tipos de Tests
-- **Tests Unitarios**: Componentes individuales (Bird, ScoreManager, etc.)
-- **Tests de Integración**: Flujo completo del juego
-- **Tests de Rendimiento**: Monitoreo de FPS y memoria
-- **Tests de Accesibilidad**: Verificación de características accesibles
-
-### Ejecutar Tests
-```bash
-# Tests básicos
-npm run test
-
-# Tests con cobertura
-npm run test:coverage
-
-# Tests en modo watch (desarrollo)
-npm run test:watch
-```
-
-## ♿ Accesibilidad
-
-El juego está diseñado para ser completamente accesible:
-
-### Características de Accesibilidad
-- **Navegación por teclado**: Todos los elementos son navegables con teclado
-- **Lectores de pantalla**: Anuncios automáticos de estado del juego
-- **Alto contraste**: Soporte automático para modo de alto contraste
-- **Movimiento reducido**: Respeta las preferencias de animación del usuario
-- **Etiquetas ARIA**: Elementos correctamente etiquetados para tecnologías asistivas
-
-### Controles de Accesibilidad
-- **TAB**: Navegar entre elementos
-- **ENTER/ESPACIO**: Activar elementos o saltar
-- **ESC**: Regresar o pausar
-- **Foco visible**: Indicadores claros de foco
+## ♿ Notas
+La versión actual mantiene algunos elementos de accesibilidad en `index.html` (roles ARIA e instrucciones), pero la lógica avanzada fue removida.
 
 ## 🎨 Personalización
+Todo está centralizado en `app.ts`. Ajusta constantes ahí (anchos, gravedad, velocidades) sin buscar en otras capas.
 
-### Añadir Nuevos Personajes
-1. Añadir sprite a `public/assets/images/`
-2. Actualizar `ASSET_CONFIG` en `GameConfig.ts`
-3. Añadir personaje al array en `CharacterSelector.ts`
+## 🔧 Rendimiento
+La simplicidad reduce el coste. No hay sistemas dinámicos de degradación. Si necesitas optimizar más: baja gravedad o velocidad de scroll.
 
-### Modificar Configuración del Juego
-Editar `src/config/GameConfig.ts`:
-```typescript
-export const GAME_CONFIG = {
-  physics: {
-    gravity: 1500,        // Gravedad del juego
-    birdJumpForce: -400,  // Fuerza de salto
-    pipeSpeed: -200       // Velocidad de tuberías
-  },
-  gameplay: {
-    pipeGap: 200,         // Espacio entre tuberías
-    pipeSpawnInterval: 1500 // Intervalo de generación
-  }
-  // ... más configuraciones
-};
-```
-
-## 🔧 Optimización de Rendimiento
-
-El juego incluye optimizaciones automáticas:
-
-### Características de Optimización
-- **Object Pooling**: Reutilización de sprites para mejor rendimiento
-- **Degradación elegante**: Desactivación automática de efectos si el FPS baja
-- **Monitoreo de memoria**: Detección y manejo de presión de memoria
-- **Ajustes dinámicos**: Reducción automática de calidad visual si es necesario
-
-### Configuración de Rendimiento
-El sistema ajusta automáticamente:
-1. **Efectos de partículas** (frecuencia reducida)
-2. **Tweens secundarios** (pueden cancelarse)
-3. **Animaciones** (se reducen)
-4. **Número / frecuencia de tuberías** (ajustado vía dificultad)
-
-### Detección en Entorno de Test
-En entorno de pruebas (Jest) la detección de bajo rendimiento se acelera para validar comportamientos sin esperar largos intervalos. Esto permite que los tests de `Performance.test.ts` verifiquen optimizaciones en un tiempo razonable.
-
-## 🛠️ Dificultad Dinámica y Variantes de Tuberías
-
-Se añadió un sistema de dificultad progresiva mediante `DifficultyManager` que ajusta:
-- **Velocidad de tuberías**: Aumenta gradualmente con la puntuación
-- **Tamaño del hueco**: Se reduce con la progresión, hasta un mínimo seguro
-- **Variantes permitidas**: Nuevos patrones se habilitan por umbrales de score
-
-### Variantes Disponibles
-- `STATIC`: Comportamiento clásico
-- `OSCILLATING`: Par de tuberías se desplaza suavemente en eje Y
-- `NARROW`: Hueco reducido (apoya el aumento de dificultad visual)
-- `DECORATED`: Tuberías con tintado diferenciador
-- `DOUBLE`: Genera un segundo par desplazado para un reto extra
-
-La selección de variantes es aleatoria entre las permitidas por la dificultad actual. Telemetría básica se recolecta (evento de spawn y colisiones) para futuras herramientas de análisis o balance.
-
-## 📊 Telemetría Interna
-
-El `PipeManager` registra eventos mínimos (spawn, collision) con datos como variante y configuraciones activas (gap, speed). Esto sirve como punto de partida para futuras visualizaciones de balance.
-
-### Uso de Telemetría (Ejemplos)
-```ts
-import PipeManager from './components/PipeManager';
-
-// Obtener eventos registrados
-const telemetry = pipeManager.getTelemetry();
-
-// Filtrar spawns por variante
-const oscillatingSpawns = telemetry.filter(e => e.type === 'spawn' && e.pipeVariant === 'OSCILLATING');
-
-// Calcular gap promedio usado
-const avgGap = (() => {
-  const gaps = telemetry.filter(e => e.type === 'spawn' && typeof e.gap === 'number').map(e => e.gap!);
-  return gaps.length ? gaps.reduce((a,b)=>a+b,0)/gaps.length : 0;
-})();
-
-console.log('Spawn OSCILLATING:', oscillatingSpawns.length, 'Gap promedio:', avgGap);
-```
-Esto permitirá en el futuro construir paneles de análisis o ajustar la curva de dificultad basados en datos reales de sesión.
-
-## 🐛 Manejo de Errores
-
-Sistema robusto de manejo de errores:
-
-### Tipos de Errores Manejados
-- **Errores de carga de assets**: Fallbacks automáticos
-- **Errores de audio**: Juego continúa sin sonido
-- **Errores de almacenamiento**: Funciona sin persistencia
-- **Errores de física**: Reinicio automático del sistema
-
-### Degradación Elegante
-- Assets faltantes → Sprites de colores sólidos
-- Audio no disponible → Juego silencioso
-- LocalStorage bloqueado → Puntuaciones en memoria
-- Errores críticos → Pantalla de error amigable
+## 🐛 Errores
+Se usa un listener global simple `window.addEventListener('error', ...)` en `app.ts` para loguear errores.
 
 ## 📱 Compatibilidad
 
@@ -264,20 +91,7 @@ Sistema robusto de manejo de errores:
 - **Mobile**: Teléfonos en orientación vertical y horizontal
 
 ## 🤝 Contribución
-
-### Cómo Contribuir
-1. Fork el proyecto
-2. Crear una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abrir un Pull Request
-
-### Estándares de Código
-- Usar TypeScript para tipado estático
-- Seguir las convenciones de ESLint
-- Escribir tests para nuevas características
-- Documentar funciones públicas
-- Mantener accesibilidad en nuevas características
+Si deseas reintroducir features, crea nuevas carpetas limpias en vez de revivir stubs.
 
 ## 📄 Licencia
 
@@ -293,4 +107,4 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 
 ---
 
-¡Disfruta jugando Flappy Bird! 🐦✨
+¡Disfruta la versión ligera de Flappy Bird! 🐦✨

@@ -13,5 +13,6 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src/**/*.ts"]
+  // Limit compilation strictly to the live entry file
+  "include": ["src/app.ts", "tests/**/*.ts", "jest.config.js"]
 }
