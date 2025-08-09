@@ -1,5 +1,5 @@
 /* Import fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Press+Start+2P&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,22 +8,67 @@ body {
   margin: 0;
   font-family: 'Inter', sans-serif;
   overflow-x: hidden;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(circle at 50% 35%, #1a2540 0%, #0b1220 70%, #05070d 100%);
+  color: #f5f5f5;
 }
 
 h1, h2, h3 {
+  font-family: 'Press Start 2P', cursive;
+  letter-spacing: 1px;
+  text-shadow: 0 0 6px rgba(255,255,255,0.5), 0 0 12px rgba(255,220,150,0.35);
+}
+
+.arcade-subtitle {
   font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 0.65rem;
+  opacity: 0.9;
 }
 
 /* Game container */
 .game-container {
   width: 800px;
   height: 600px;
-  max-width: 90vw;
-  max-height: 70vh;
-  background: linear-gradient(to bottom, #87CEEB, #4682B4);
-  border-radius: 0.5rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  max-width: 100%;
+  max-height: 100%;
+  background: #000;
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 3px #222,
+    0 0 0 6px #111,
+    0 0 18px 4px rgba(0, 200, 255, 0.25),
+    0 0 32px 8px rgba(255, 0, 140, 0.15),
+    0 30px 60px -15px rgba(0,0,0,0.6);
   overflow: hidden;
+  position: relative;
+}
+
+.game-container:after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(255,255,255,0.05) 0px,
+    rgba(255,255,255,0.05) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  opacity: 0.15;
+}
+
+.crt-vignette {
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 120px 40px rgba(0,0,0,0.65);
+  pointer-events: none;
+  z-index: 50;
 }
 
 /* UI overlay */
@@ -41,26 +86,37 @@ h1, h2, h3 {
 
 /* Game button styles */
 .game-button {
+  --glow: 120 100% 50%;
   padding: 0.75rem 1.5rem;
-  background-color: #16a34a;
+  background: linear-gradient(135deg, #ff0066, #ff9a00);
   color: white;
-  font-weight: 600;
-  border-radius: 0.5rem;
-  transition: all 0.2s ease-in-out;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  font-weight: 700;
+  border-radius: 0.75rem;
+  transition: all 0.18s ease;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.07), 0 4px 14px -2px rgba(0,0,0,0.6), 0 0 14px -2px rgba(255,60,140,0.55);
   cursor: pointer;
   user-select: none;
   border: none;
+  position: relative;
+  letter-spacing: .5px;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.6);
 }
-
-.game-button:hover {
-  background-color: #15803d;
-  transform: scale(1.05);
+.game-button:before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(120deg, rgba(255,255,255,0.4), rgba(255,0,120,0.3), rgba(0,180,255,0.3));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity .25s ease;
 }
-
-.game-button:active {
-  transform: scale(0.95);
-}
+.game-button:hover:before { opacity: 1; }
+.game-button:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 6px 18px -4px rgba(0,0,0,0.7), 0 0 22px -2px rgba(255,60,140,0.7); }
+.game-button:active { transform: translateY(2px) scale(.97); }
 
 /* Focus styles for accessibility */
 .game-button:focus,
@@ -85,8 +141,8 @@ button:focus {
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .game-container {
-    width: 95vw;
-    height: 70vh;
+  width: 92vw;
+  height: 64vh;
   }
   
   h1 {
@@ -96,9 +152,22 @@ button:focus {
 
 @media (max-width: 480px) {
   .game-container {
-    width: 98vw;
-    height: 65vh;
+  width: 96vw;
+  height: 60vh;
   }
+/* Center wrapper helper */
+.game-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* Arcade footer tweaks */
+footer {
+  font-family: 'Inter', sans-serif;
+  letter-spacing: .5px;
+}
   
   h1 {
     font-size: 1.5rem;
