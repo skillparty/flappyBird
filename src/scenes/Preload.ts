@@ -36,18 +36,13 @@ export default class Preload extends Phaser.Scene {
     const loadingMessages = [
       'skillparty@flappybird:~$ initializing game systems...',
       'Loading assets... [████████████████████] 100%',
-      'Configuring physics engine... OK',
-      'Setting up game world... OK',
-      'Preparing bird mechanics... OK',
-      'Generating pipe obstacles... OK',
-      'Initializing collision detection... OK',
       'Loading complete. Starting game...',
       '',
       'Press any key to continue...'
     ];
 
     let currentLine = 0;
-    const typeSpeed = 50;
+    const typeSpeed = 20; // Faster typing
 
     const typeNextLine = () => {
       if (currentLine < loadingMessages.length) {
@@ -65,15 +60,15 @@ export default class Preload extends Phaser.Scene {
             } else {
               this.loadingText.setText(this.loadingText.text + '\n');
               currentLine++;
-              this.time.delayedCall(200, typeNextLine);
+              this.time.delayedCall(50, typeNextLine); // Much faster between lines
             }
           }
         };
         
         typeLine();
       } else {
-        // Loading complete, wait for input or auto-continue
-        this.time.delayedCall(1000, () => {
+        // Loading complete, immediate transition
+        this.time.delayedCall(300, () => {
           this.scene.start('Menu');
         });
       }

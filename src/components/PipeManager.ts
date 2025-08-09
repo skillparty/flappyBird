@@ -112,8 +112,8 @@ export default class PipeManager {
     try {
       const currentTime = this.scene.time.now;
       
-      // Check if enough time has passed since last spawn
-      if (currentTime - this.lastSpawnTime < this.config.spawnInterval) {
+      // Check if enough time has passed since last spawn (longer interval for static pipes)
+      if (currentTime - this.lastSpawnTime < (this.config.spawnInterval * 2)) {
         return;
       }
 
@@ -124,32 +124,31 @@ export default class PipeManager {
         this.config.gap = d.gap;
       }
 
-      // Calculate random gap position (respect dynamic gap)
-      const gapCenter = Phaser.Math.Between(
-        this.config.minHeight + this.config.gap / 2,
-        this.config.maxHeight - this.config.gap / 2
-      );
+      // Calculate static gap positions for stable gameplay
+      const pipeX = 400 + (this.activePipes.length * 250); // Spread pipes evenly
+      const gapCenter = Phaser.Math.Between(150, 450); // Vertical center of gap
 
       // Get pipes from pool
       const topPipe = this.getPipeFromPool();
       const bottomPipe = this.getPipeFromPool();
 
-      // Position top pipe
-      topPipe.setPosition(GAME_CONSTANTS.PIPE_SPAWN_X, gapCenter - this.config.gap / 2);
+      // Position top pipe - static position
+      topPipe.setPosition(pipeX, gapCenter - this.config.gap / 2);
       topPipe.setFlipY(true);
       topPipe.setOrigin(0.5, 1); // Bottom of sprite for top pipe
 
-      // Position bottom pipe
-      bottomPipe.setPosition(GAME_CONSTANTS.PIPE_SPAWN_X, gapCenter + this.config.gap / 2);
+      // Position bottom pipe - static position
+      bottomPipe.setPosition(pipeX, gapCenter + this.config.gap / 2);
       bottomPipe.setOrigin(0.5, 0); // Top of sprite for bottom pipe
 
-  // Set physics properties
+  // Set physics properties - PIPES ARE STATIC, NO MOVEMENT
       if (topPipe.body && bottomPipe.body) {
         const topBody = topPipe.body as Phaser.Physics.Arcade.Body;
         const bottomBody = bottomPipe.body as Phaser.Physics.Arcade.Body;
         
-        topBody.setVelocityX(this.config.speed);
-        bottomBody.setVelocityX(this.config.speed);
+        // Pipes are completely static - no velocity at all
+        topBody.setVelocityX(0);
+        bottomBody.setVelocityX(0);
         topBody.setImmovable(true);
         bottomBody.setImmovable(true);
       }
@@ -192,22 +191,12 @@ export default class PipeManager {
     if (!this.isActive) return;
 
     try {
-      // Update pipe positions and remove off-screen pipes
-      this.activePipes = this.activePipes.filter(pipePair => {
-        const pipe = pipePair.top;
-        
-        // Check if pipe is off-screen
-        if (pipe.x < -GAME_CONSTANTS.PIPE_WIDTH) {
-          this.returnPipeToPool(pipePair.top);
-          this.returnPipeToPool(pipePair.bottom);
-          return false; // Remove from active pipes
-        }
-        
-        return true; // Keep pipe
-      });
-
-      // Generate new pipes if needed
-  this.generatePipe(currentScore);
+      // Pipes are static, no need to move them
+      // Only generate new pipes when needed (much less frequently for static gameplay)
+      // Check if we need more pipes based on current pipe count
+      if (this.activePipes.length < 3) {
+        this.generatePipe(currentScore);
+      }
       
     } catch (error) {
       ErrorHandler.handleGameplayError(error as Error, 'pipe-update');
@@ -299,21 +288,7 @@ export default class PipeManager {
    */
   stop(): void {
     this.isActive = false;
-    
-    try {
-      // Stop all pipe movement
-      for (const pipePair of this.activePipes) {
-        if (pipePair.top.body && pipePair.bottom.body) {
-          const topBody = pipePair.top.body as Phaser.Physics.Arcade.Body;
-          const bottomBody = pipePair.bottom.body as Phaser.Physics.Arcade.Body;
-          
-          topBody.setVelocity(0, 0);
-          bottomBody.setVelocity(0, 0);
-        }
-      }
-    } catch (error) {
-      ErrorHandler.handlePhysicsError(error as Error, 'pipe-manager-stop');
-    }
+    // Pipes are already static, no need to stop movement
   }
 
   /**
@@ -321,21 +296,7 @@ export default class PipeManager {
    */
   resume(): void {
     this.isActive = true;
-    
-    try {
-      // Resume pipe movement
-      for (const pipePair of this.activePipes) {
-        if (pipePair.top.body && pipePair.bottom.body) {
-          const topBody = pipePair.top.body as Phaser.Physics.Arcade.Body;
-          const bottomBody = pipePair.bottom.body as Phaser.Physics.Arcade.Body;
-          
-          topBody.setVelocityX(this.config.speed);
-          bottomBody.setVelocityX(this.config.speed);
-        }
-      }
-    } catch (error) {
-      ErrorHandler.handlePhysicsError(error as Error, 'pipe-manager-resume');
-    }
+    // Pipes remain static, just allow new generation
   }
 
   /**
@@ -407,17 +368,18 @@ export default class PipeManager {
         break;
       }
       case PipeVariant.DOUBLE: {
-        // Spawn an extra immediate pair slightly offset
+        // Spawn an extra immediate pair slightly offset - but also static
         const extraTop = this.getPipeFromPool();
         const extraBottom = this.getPipeFromPool();
-        extraTop.setPosition(topPipe.x + 250, topPipe.y);
+        extraTop.setPosition(topPipe.x + 150, topPipe.y);
         extraTop.setFlipY(true);
         extraTop.setOrigin(0.5, 1);
-        extraBottom.setPosition(bottomPipe.x + 250, bottomPipe.y);
+        extraBottom.setPosition(bottomPipe.x + 150, bottomPipe.y);
         extraBottom.setOrigin(0.5, 0);
         if (extraTop.body && extraBottom.body) {
-          (extraTop.body as Phaser.Physics.Arcade.Body).setVelocityX(this.config.speed);
-          (extraBottom.body as Phaser.Physics.Arcade.Body).setVelocityX(this.config.speed);
+          // Extra pipes are also static
+          (extraTop.body as Phaser.Physics.Arcade.Body).setVelocityX(0);
+          (extraBottom.body as Phaser.Physics.Arcade.Body).setVelocityX(0);
           (extraTop.body as Phaser.Physics.Arcade.Body).setImmovable(true);
           (extraBottom.body as Phaser.Physics.Arcade.Body).setImmovable(true);
         }

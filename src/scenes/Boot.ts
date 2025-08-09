@@ -18,9 +18,7 @@ export default class Boot extends Phaser.Scene {
   create() {
     console.log('✅ Boot scene: Systems initialized, starting Preload...');
     
-    // Add a small delay for smooth transition
-    this.time.delayedCall(100, () => {
-      this.scene.start('Preload');
-    });
+    // Immediate transition - no delay needed
+    this.scene.start('Preload');
   }
 }

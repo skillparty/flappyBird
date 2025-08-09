@@ -54,18 +54,9 @@ export default class Menu extends Phaser.Scene {
 
     const bootMessages = [
       'skillparty@ubuntu:~$ sudo systemctl start flappy-bird.service',
-      '[sudo] password for skillparty: ********',
-      '',
       'Starting Flappy Bird Game System...',
-      '[ OK ] Started Flappy Bird Physics Engine',
-      '[ OK ] Started Bird Flight Controller',
-      '[ OK ] Started Pipe Obstacle Generator', 
-      '[ OK ] Started Collision Detection System',
-      '[ OK ] Started Score Management Service',
-      '[ OK ] Started Game Audio System',
-      '',
-      'System ready. Loading game interface...',
-      ''
+      '[ OK ] All systems ready',
+      'System ready. Loading game interface...'
     ];
 
     this.typeBootSequence(bootMessages, 0, () => {
@@ -95,10 +86,10 @@ export default class Menu extends Phaser.Scene {
       if (charIndex < message.length) {
         this.terminalText.setText(currentText + message.substring(0, charIndex + 1));
         charIndex++;
-  this.time.delayedCall(15, typeChar);
+  this.time.delayedCall(8, typeChar);
       } else {
         this.terminalText.setText(currentText + message + '\n');
-  this.time.delayedCall(80, () => {
+  this.time.delayedCall(40, () => {
           this.typeBootSequence(messages, index + 1, onComplete);
         });
       }
@@ -176,7 +167,7 @@ export default class Menu extends Phaser.Scene {
     this.tweens.add({
       targets: this.cursor,
       alpha: 0,
-      duration: 500,
+      duration: 200,
       ease: 'Power2.easeInOut',
       yoyo: true,
       repeat: -1
