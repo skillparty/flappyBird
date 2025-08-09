@@ -1,0 +1,1277 @@
+import 'phaser';
+
+// Simple and stable game configuration
+const config: Phaser.Types.Core.GameConfig = {
+  type: Phaser.AUTO,
+  width: 800,
+  height: 600,
+  parent: 'game-container',
+  backgroundColor: '#5C94FC', // Mario Bros sky blue
+  physics: {
+    default: 'arcade',
+    arcade: {
+      gravity: { y: 800 }, // Slightly reduced for more Mario-like feel
+      debug: false
+    }
+  },
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH
+  },
+  scene: {
+    preload: preload,
+    create: create,
+    update: update
+  }
+};
+
+// Game variables
+let bird: Phaser.Physics.Arcade.Sprite;
+let pipes: Phaser.Physics.Arcade.Group;
+let ground: Phaser.GameObjects.TileSprite;
+let scoreText: Phaser.GameObjects.Text;
+let score = 0;
+let gameOver = false;
+let gameStarted = false;
+let pipeTimer = 0;
+
+// Mario Bros background elements
+let clouds: Phaser.GameObjects.Group;
+let hills: Phaser.GameObjects.Group;
+
+// Mario Bros coins system
+let coins: Phaser.Physics.Arcade.Group;
+let coinScore = 0;
+
+// Performance monitoring
+let fpsText: Phaser.GameObjects.Text;
+let lastTime = 0;
+let frameCount = 0;
+
+// Power-up system (base for future star power-up)
+interface PowerUpEffect {
+  type: string;
+  duration: number;
+  active: boolean;
+  startTime: number;
+}
+
+let activePowerUps: PowerUpEffect[] = [];
+let powerUpGroup: Phaser.Physics.Arcade.Group;
+
+// Mario Bros audio system
+let audioContext: AudioContext;
+let audioEnabled = true;
+
+// Mario Bros configuration
+const marioConfig = {
+  coinSpawnRate: 0.35,
+  coinValue: 10,
+  cheepCheepJumpForce: -320,
+  gravity: 800,
+  parallaxCloudSpeed: 0.5,
+  parallaxHillSpeed: 0.2
+};
+
+// Mario Bros Audio Functions
+function initAudio() {
+  try {
+    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    audioEnabled = true;
+    console.log('Audio system initialized');
+  } catch (error) {
+    console.warn('Audio not supported:', error);
+    audioEnabled = false;
+  }
+}
+
+function resumeAudioContext() {
+  if (audioContext && audioContext.state === 'suspended') {
+    audioContext.resume().then(() => {
+      console.log('Audio context resumed');
+    }).catch((error) => {
+      console.warn('Failed to resume audio context:', error);
+    });
+  }
+}
+
+// Mario Bros Audio Functions
+function initAudio() {
+  try {
+    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    audioEnabled = true;
+    console.log('Audio system initialized');
+  } catch (error) {
+    console.warn('Audio not supported:', error);
+    audioEnabled = false;
+  }
+}
+
+function resumeAudioContext() {
+  if (audioContext && audioContext.state === 'suspended') {
+    audioContext.resume().then(() => {
+      console.log('Audio context resumed');
+    }).catch((error) => {
+      console.warn('Failed to resume audio context:', error);
+    });
+  }
+}
+
+function preload(this: Phaser.Scene) {
+  console.log('Loading game assets...');
+  
+  // Initialize Mario Bros audio system
+  initAudio();
+  
+  // Hide loading indicator
+  const loadingElement = document.getElementById('loading-indicator');
+  if (loadingElement) {
+    loadingElement.style.display = 'none';
+  }
+
+  // Create simple sprites using graphics
+  const graphics = this.add.graphics();
+  
+  // Cheep Cheep - Mario Bros style fish
+  // Body (red-orange)
+  graphics.fillStyle(0xFF4444);
+  graphics.fillEllipse(17, 12, 30, 20);
+  
+  // Belly (white/cream)
+  graphics.fillStyle(0xFFFFDD);
+  graphics.fillEllipse(17, 14, 20, 12);
+  
+  // Eye (black)
+  graphics.fillStyle(0x000000);
+  graphics.fillCircle(22, 10, 4);
+  
+  // Eye highlight (white)
+  graphics.fillStyle(0xFFFFFF);
+  graphics.fillCircle(23, 9, 2);
+  
+  // Fins (darker red)
+  graphics.fillStyle(0xCC2222);
+  // Top fin
+  graphics.fillTriangle(8, 8, 2, 4, 8, 12);
+  // Bottom fin
+  graphics.fillTriangle(8, 16, 2, 20, 8, 12);
+  // Tail fin
+  graphics.fillTriangle(2, 8, 2, 16, -4, 12);
+  
+  graphics.generateTexture('cheepCheep', 34, 24);
+  
+  // Pipe - Green rectangle
+  graphics.clear();
+  graphics.fillStyle(0x228B22);
+  graphics.fillRect(0, 0, 60, 400);
+  graphics.fillStyle(0x32CD32);
+  graphics.fillRect(5, 0, 50, 400);
+  graphics.generateTexture('pipe', 60, 400);
+  
+  // Ground - Mario Bros style (green with brown base)
+  graphics.clear();
+  graphics.fillStyle(0x228B22); // Green top
+  graphics.fillRect(0, 0, 800, 40);
+  graphics.fillStyle(0x8B4513); // Brown base
+  graphics.fillRect(0, 40, 800, 20);
+  graphics.generateTexture('ground', 800, 60);
+  
+  // Mario Bros Cloud - White pixelated
+  graphics.clear();
+  graphics.fillStyle(0xFFFFFF);
+  // Cloud body (pixelated style)
+  graphics.fillRect(8, 12, 48, 16);
+  graphics.fillRect(4, 16, 56, 8);
+  graphics.fillRect(0, 20, 64, 8);
+  // Cloud bumps
+  graphics.fillRect(16, 8, 16, 4);
+  graphics.fillRect(32, 4, 16, 8);
+  graphics.generateTexture('cloud', 64, 32);
+  
+  // Mario Bros Hill with Trees - Green pixelated
+  graphics.clear();
+  graphics.fillStyle(0x00AA00);
+  // Hill shape (pixelated)
+  graphics.fillRect(20, 60, 120, 20);
+  graphics.fillRect(40, 40, 80, 20);
+  graphics.fillRect(60, 20, 40, 20);
+  graphics.fillRect(70, 10, 20, 10);
+  
+  // Tree trunks (brown)
+  graphics.fillStyle(0x8B4513);
+  graphics.fillRect(45, 35, 8, 25); // Left tree trunk
+  graphics.fillRect(75, 25, 8, 35); // Middle tree trunk  
+  graphics.fillRect(105, 30, 8, 30); // Right tree trunk
+  
+  // Tree tops (darker green)
+  graphics.fillStyle(0x228B22);
+  graphics.fillRect(40, 25, 18, 15); // Left tree top
+  graphics.fillRect(70, 15, 18, 15); // Middle tree top
+  graphics.fillRect(100, 20, 18, 15); // Right tree top
+  
+  graphics.generateTexture('hill', 160, 80);
+  
+  // Mario Bros Coin - Golden pixelated
+  graphics.clear();
+  graphics.fillStyle(0xFFD700); // Gold
+  // Coin body (circular pixelated)
+  graphics.fillRect(4, 2, 16, 20);
+  graphics.fillRect(2, 4, 20, 16);
+  graphics.fillRect(6, 0, 12, 24);
+  
+  // Coin highlight
+  graphics.fillStyle(0xFFFF99);
+  graphics.fillRect(8, 4, 8, 16);
+  graphics.fillRect(6, 6, 12, 12);
+  
+  // Coin shadow/depth
+  graphics.fillStyle(0xCC9900);
+  graphics.fillRect(16, 4, 4, 16);
+  graphics.fillRect(14, 2, 6, 20);
+  
+  graphics.generateTexture('coin', 24, 24);
+  
+  // Mario Bros Star Power-up (for future implementation)
+  graphics.clear();
+  graphics.fillStyle(0xFFD700); // Gold base
+  // Star shape (pixelated)
+  graphics.fillRect(12, 0, 4, 28);  // Vertical line
+  graphics.fillRect(0, 12, 28, 4);  // Horizontal line
+  graphics.fillRect(6, 6, 16, 16);  // Center square
+  graphics.fillRect(4, 8, 20, 12);  // Middle rectangle
+  graphics.fillRect(8, 4, 12, 20);  // Middle rectangle
+  
+  // Star highlights
+  graphics.fillStyle(0xFFFFAA);
+  graphics.fillRect(10, 2, 8, 24);
+  graphics.fillRect(2, 10, 24, 8);
+  
+  graphics.generateTexture('star', 28, 28);
+  
+  // Mario Bros Question Block (for menu decoration)
+  graphics.clear();
+  graphics.fillStyle(0xFFAA00); // Orange/yellow base
+  graphics.fillRect(0, 0, 32, 32);
+  
+  // Block border (darker)
+  graphics.fillStyle(0xCC7700);
+  graphics.fillRect(0, 0, 32, 4);   // Top border
+  graphics.fillRect(0, 28, 32, 4);  // Bottom border
+  graphics.fillRect(0, 0, 4, 32);   // Left border
+  graphics.fillRect(28, 0, 4, 32);  // Right border
+  
+  // Question mark (white)
+  graphics.fillStyle(0xFFFFFF);
+  graphics.fillRect(12, 8, 8, 4);   // Top of ?
+  graphics.fillRect(16, 12, 4, 4);  // Middle of ?
+  graphics.fillRect(12, 20, 4, 4);  // Dot of ?
+  
+  graphics.generateTexture('questionBlock', 32, 32);
+  
+  graphics.destroy();
+}
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // Mario hit/death sound: descending frequency
+    oscillator.frequency.setValueAtTime(220, audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(55, audioContext.currentTime + 0.5);
+    
+    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+    
+    oscillator.type = 'sawtooth';
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+  } catch (error) {
+    console.warn('Failed to play hit sound:', error);
+  }
+}
+
+function playMarioScoreSound() {
+  if (!audioEnabled || !audioContext || audioContext.state !== 'running') return;
+  
+  try {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // Mario score sound: ascending notes
+    oscillator.frequency.setValueAtTime(523, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1);
+    oscillator.frequency.setValueAtTime(784, audioContext.currentTime + 0.2);
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+    
+    oscillator.type = 'square';
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.3);
+  } catch (error) {
+    console.warn('Failed to play score sound:', error);
+  }
+}
+
+// Mario Bros Audio Functions
+function initAudio() {
+  try {
+    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    audioEnabled = true;
+    console.log('Audio system initialized');
+  } catch (error) {
+    console.warn('Audio not supported:', error);
+    audioEnabled = false;
+  }
+}
+
+function resumeAudioContext() {
+  if (audioContext && audioContext.state === 'suspended') {
+    audioContext.resume().then(() => {
+      console.log('Audio context resumed');
+    }).catch((error) => {
+      console.warn('Failed to resume audio context:', error);
+    });
+  }
+}
+
+function playMarioJumpSound() {
+  if (!audioEnabled || !audioContext || audioContext.state !== 'running') return;
+  
+  try {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.setValueAtTime(330, audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(880, audioContext.currentTime + 0.1);
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+    
+    oscillator.type = 'square';
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.1);
+  } catch (error) {
+    console.warn('Failed to play jump sound:', error);
+  }
+}
+
+function playMarioCoinSound() {
+  if (!audioEnabled || !audioContext || audioContext.state !== 'running') return;
+  
+  try {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.setValueAtTime(988, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(1319, audioContext.currentTime + 0.1);
+    
+    gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+    
+    oscillator.type = 'square';
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.3);
+  } catch (error) {
+    console.warn('Failed to play coin sound:', error);
+  }
+}
+
+function playMarioHitSound() {
+  if (!audioEnabled || !audioContext || audioContext.state !== 'running') return;
+  
+  try {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.setValueAtTime(220, audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(55, audioContext.currentTime + 0.5);
+    
+    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+    
+    oscillator.type = 'sawtooth';
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+  } catch (error) {
+    console.warn('Failed to play hit sound:', error);
+  }
+}
+
+function playMarioScoreSound() {
+  if (!audioEnabled || !audioContext || audioContext.state !== 'running') return;
+  
+  try {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.setValueAtTime(523, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1);
+    oscillator.frequency.setValueAtTime(784, audioContext.currentTime + 0.2);
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+    
+    oscillator.type = 'square';
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.3);
+  } catch (error) {
+    console.warn('Failed to play score sound:', error);
+  }
+}
+
+function preload(this: Phaser.Scene) {
+  console.log('Loading game assets...');
+  
+  // Initialize Mario Bros audio system
+  initAudio();
+  
+  // Hide loading indicator
+  const loadingElement = document.getElementById('loading-indicator');
+  if (loadingElement) {
+    loadingElement.style.display = 'none';
+  }
+
+  // Create simple sprites using graphics
+  const graphics = this.add.graphics();
+  
+  // Cheep Cheep - Mario Bros style fish
+  // Body (red-orange)
+  graphics.fillStyle(0xFF4444);
+  graphics.fillEllipse(17, 12, 30, 20);
+  
+  // Belly (white/cream)
+  graphics.fillStyle(0xFFFFDD);
+  graphics.fillEllipse(17, 14, 20, 12);
+  
+  // Eye (black)
+  graphics.fillStyle(0x000000);
+  graphics.fillCircle(22, 10, 4);
+  
+  // Eye highlight (white)
+  graphics.fillStyle(0xFFFFFF);
+  graphics.fillCircle(23, 9, 2);
+  
+  // Fins (darker red)
+  graphics.fillStyle(0xCC2222);
+  // Top fin
+  graphics.fillTriangle(8, 8, 2, 4, 8, 12);
+  // Bottom fin
+  graphics.fillTriangle(8, 16, 2, 20, 8, 12);
+  // Tail fin
+  graphics.fillTriangle(2, 8, 2, 16, -4, 12);
+  
+  graphics.generateTexture('cheepCheep', 34, 24);
+  
+  // Pipe - Green rectangle
+  graphics.clear();
+  graphics.fillStyle(0x228B22);
+  graphics.fillRect(0, 0, 60, 400);
+  graphics.fillStyle(0x32CD32);
+  graphics.fillRect(5, 0, 50, 400);
+  graphics.generateTexture('pipe', 60, 400);
+  
+  // Ground - Mario Bros style (green with brown base)
+  graphics.clear();
+  graphics.fillStyle(0x228B22); // Green top
+  graphics.fillRect(0, 0, 800, 40);
+  graphics.fillStyle(0x8B4513); // Brown base
+  graphics.fillRect(0, 40, 800, 20);
+  graphics.generateTexture('ground', 800, 60);
+  
+  // Mario Bros Cloud - White pixelated
+  graphics.clear();
+  graphics.fillStyle(0xFFFFFF);
+  // Cloud body (pixelated style)
+  graphics.fillRect(8, 12, 48, 16);
+  graphics.fillRect(4, 16, 56, 8);
+  graphics.fillRect(0, 20, 64, 8);
+  // Cloud bumps
+  graphics.fillRect(16, 8, 16, 4);
+  graphics.fillRect(32, 4, 16, 8);
+  graphics.generateTexture('cloud', 64, 32);
+  
+  // Mario Bros Hill with Trees - Green pixelated
+  graphics.clear();
+  graphics.fillStyle(0x00AA00);
+  // Hill shape (pixelated)
+  graphics.fillRect(20, 60, 120, 20);
+  graphics.fillRect(40, 40, 80, 20);
+  graphics.fillRect(60, 20, 40, 20);
+  graphics.fillRect(70, 10, 20, 10);
+  
+  // Tree trunks (brown)
+  graphics.fillStyle(0x8B4513);
+  graphics.fillRect(45, 35, 8, 25); // Left tree trunk
+  graphics.fillRect(75, 25, 8, 35); // Middle tree trunk  
+  graphics.fillRect(105, 30, 8, 30); // Right tree trunk
+  
+  // Tree tops (darker green)
+  graphics.fillStyle(0x228B22);
+  graphics.fillRect(40, 25, 18, 15); // Left tree top
+  graphics.fillRect(70, 15, 18, 15); // Middle tree top
+  graphics.fillRect(100, 20, 18, 15); // Right tree top
+  
+  graphics.generateTexture('hill', 160, 80);
+  
+  // Mario Bros Coin - Golden pixelated
+  graphics.clear();
+  graphics.fillStyle(0xFFD700); // Gold
+  // Coin body (circular pixelated)
+  graphics.fillRect(4, 2, 16, 20);
+  graphics.fillRect(2, 4, 20, 16);
+  graphics.fillRect(6, 0, 12, 24);
+  
+  // Coin highlight
+  graphics.fillStyle(0xFFFF99);
+  graphics.fillRect(8, 4, 8, 16);
+  graphics.fillRect(6, 6, 12, 12);
+  
+  // Coin shadow/depth
+  graphics.fillStyle(0xCC9900);
+  graphics.fillRect(16, 4, 4, 16);
+  graphics.fillRect(14, 2, 6, 20);
+  
+  graphics.generateTexture('coin', 24, 24);
+  
+  // Mario Bros Star Power-up (for future implementation)
+  graphics.clear();
+  graphics.fillStyle(0xFFD700); // Gold base
+  // Star shape (pixelated)
+  graphics.fillRect(12, 0, 4, 28);  // Vertical line
+  graphics.fillRect(0, 12, 28, 4);  // Horizontal line
+  graphics.fillRect(6, 6, 16, 16);  // Center square
+  graphics.fillRect(4, 8, 20, 12);  // Middle rectangle
+  graphics.fillRect(8, 4, 12, 20);  // Middle rectangle
+  
+  // Star highlights
+  graphics.fillStyle(0xFFFFAA);
+  graphics.fillRect(10, 2, 8, 24);
+  graphics.fillRect(2, 10, 24, 8);
+  
+  graphics.generateTexture('star', 28, 28);
+  
+  // Mario Bros Question Block (for menu decoration)
+  graphics.clear();
+  graphics.fillStyle(0xFFAA00); // Orange/yellow base
+  graphics.fillRect(0, 0, 32, 32);
+  
+  // Block border (darker)
+  graphics.fillStyle(0xCC7700);
+  graphics.fillRect(0, 0, 32, 4);   // Top border
+  graphics.fillRect(0, 28, 32, 4);  // Bottom border
+  graphics.fillRect(0, 0, 4, 32);   // Left border
+  graphics.fillRect(28, 0, 4, 32);  // Right border
+  
+  // Question mark (white)
+  graphics.fillStyle(0xFFFFFF);
+  graphics.fillRect(12, 8, 8, 4);   // Top of ?
+  graphics.fillRect(16, 12, 4, 4);  // Middle of ?
+  graphics.fillRect(12, 20, 4, 4);  // Dot of ?
+  
+  graphics.generateTexture('questionBlock', 32, 32);
+  
+  graphics.destroy();
+}
+
+function createMarioBrosBackground(this: Phaser.Scene) {
+  // Create hills (back layer)
+  hills = this.add.group();
+  for (let i = 0; i < 6; i++) {
+    const hill = this.add.image(i * 200 - 100, 480, 'hill');
+    hill.setOrigin(0.5, 1);
+    hill.setScale(0.8);
+    hill.setAlpha(0.7);
+    hills.add(hill);
+  }
+  
+  // Create clouds (middle layer)
+  clouds = this.add.group();
+  for (let i = 0; i < 8; i++) {
+    const cloud = this.add.image(
+      Phaser.Math.Between(0, 1000), 
+      Phaser.Math.Between(50, 200), 
+      'cloud'
+    );
+    cloud.setScale(Phaser.Math.FloatBetween(0.5, 1.0));
+    cloud.setAlpha(0.8);
+    clouds.add(cloud);
+  }
+}
+
+function create(this: Phaser.Scene) {
+  console.log('🌍 Creating game world...');
+  
+  // Reset game state
+  score = 0;
+  coinScore = 0;
+  gameOver = false;
+  gameStarted = false;
+  pipeTimer = 0;
+  
+  // Reset power-ups
+  activePowerUps = [];
+  
+  // Create Mario Bros background
+  createMarioBrosBackground.call(this);
+  
+  // Create ground
+  ground = this.add.tileSprite(0, 540, 800, 60, 'ground');
+  ground.setOrigin(0, 0);
+  
+  // Create ground physics (invisible)
+  const groundBody = this.physics.add.staticGroup();
+  const groundCollider = groundBody.create(400, 570, null);
+  groundCollider.setSize(800, 60);
+  groundCollider.setVisible(false);
+  
+  // Create Cheep Cheep
+  bird = this.physics.add.sprite(150, 300, 'cheepCheep');
+  bird.setScale(1.0);
+  bird.body.setSize(30, 20);
+  bird.setCollideWorldBounds(false);
+  
+  // Add swimming animation data
+  bird.setData('isFlapping', false);
+  bird.setData('flapTimer', 0);
+  
+  // Create pipes group
+  pipes = this.physics.add.group();
+  
+  // Create coins group
+  coins = this.physics.add.group();
+  
+  // Create power-ups group (for future use)
+  powerUpGroup = this.physics.add.group();
+  
+  // Create UI
+  scoreText = this.add.text(400, 50, `Score: ${score} | Coins: ${coinScore}`, {
+    fontSize: '28px',
+    fontFamily: 'Arial',
+    color: '#FFFFFF',
+    stroke: '#000000',
+    strokeThickness: 4
+  });
+  scoreText.setOrigin(0.5);
+  
+  // Game title and instructions (only show when game hasn't started)
+  if (!gameStarted) {
+    // Main title
+    const titleText = this.add.text(400, 150, 'SUPER CHEEP CHEEP', {
+      fontSize: '36px',
+      fontFamily: 'Arial',
+      color: '#FFD700',
+      stroke: '#000000',
+      strokeThickness: 4,
+      align: 'center'
+    });
+    titleText.setOrigin(0.5);
+    
+    // Subtitle
+    const subtitleText = this.add.text(400, 190, 'Mario Bros Edition', {
+      fontSize: '20px',
+      fontFamily: 'Arial',
+      color: '#FFFFFF',
+      stroke: '#000000',
+      strokeThickness: 2,
+      align: 'center'
+    });
+    subtitleText.setOrigin(0.5);
+    
+    // Instructions
+    const instructionText = this.add.text(400, 250, 
+      'CLICK or SPACE to swim up!\nCollect coins and avoid pipes!', {
+      fontSize: '18px',
+      fontFamily: 'Arial',
+      color: '#FFFFFF',
+      stroke: '#000000',
+      strokeThickness: 2,
+      align: 'center'
+    });
+    instructionText.setOrigin(0.5);
+    
+    // Start prompt with blinking effect
+    const startPrompt = this.add.text(400, 320, 'PRESS SPACE OR CLICK TO START', {
+      fontSize: '16px',
+      fontFamily: 'Arial',
+      color: '#FFFF00',
+      stroke: '#000000',
+      strokeThickness: 2,
+      align: 'center'
+    });
+    startPrompt.setOrigin(0.5);
+    
+    // Blinking animation for start prompt
+    this.tweens.add({
+      targets: startPrompt,
+      alpha: 0.3,
+      duration: 800,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Power2'
+    });
+    
+    // High score display
+    const highScore = parseInt(localStorage.getItem('flappyHighScore') || '0');
+    if (highScore > 0) {
+      this.add.text(400, 380, `Best Score: ${highScore}`, {
+        fontSize: '14px',
+        fontFamily: 'Arial',
+        color: '#00FF00',
+        stroke: '#000000',
+        strokeThickness: 1,
+        align: 'center'
+      }).setOrigin(0.5);
+    }
+    
+    // Decorative question blocks
+    const block1 = this.add.image(200, 150, 'questionBlock');
+    block1.setScale(0.8);
+    const block2 = this.add.image(600, 150, 'questionBlock');
+    block2.setScale(0.8);
+    
+    // Floating animation for blocks
+    this.tweens.add({
+      targets: [block1, block2],
+      y: '+=10',
+      duration: 1500,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+    
+    // Store references to remove them when game starts
+    bird.setData('titleElements', [titleText, subtitleText, instructionText, startPrompt, block1, block2]);
+  }
+  
+  // Audio indicator
+  const audioIndicator = this.add.text(750, 50, audioEnabled ? 'AUDIO: ON' : 'AUDIO: OFF', {
+    fontSize: '16px',
+    fontFamily: 'Arial',
+    color: audioEnabled ? '#00FF00' : '#FF0000',
+    stroke: '#000000',
+    strokeThickness: 2
+  });
+  audioIndicator.setOrigin(1, 0);
+  
+  // Audio toggle hint
+  this.add.text(750, 70, 'Press M to toggle', {
+    fontSize: '12px',
+    fontFamily: 'Arial',
+    color: '#CCCCCC',
+    stroke: '#000000',
+    strokeThickness: 1
+  }).setOrigin(1, 0);
+  
+  // FPS counter (for performance monitoring)
+  fpsText = this.add.text(10, 10, 'FPS: --', {
+    fontSize: '14px',
+    fontFamily: 'Arial',
+    color: '#FFFFFF',
+    stroke: '#000000',
+    strokeThickness: 1
+  });
+  
+  // Setup collisions
+  this.physics.add.overlap(bird, groundBody, handleGameOver, undefined, this);
+  this.physics.add.overlap(bird, pipes, handleGameOver, undefined, this);
+  
+  // Setup coin collection
+  this.physics.add.overlap(bird, coins, collectCoin, undefined, this);
+  
+  // Setup input
+  this.input.on('pointerdown', handleInput, this);
+  this.input.keyboard?.on('keydown-SPACE', handleInput, this);
+  this.input.keyboard?.on('keydown-M', toggleAudio, this);
+  
+  console.log('✅ Game world ready!');
+}
+
+// Power-up system functions (base for future implementation)
+function addPowerUp(type: string, duration: number) {
+  const powerUp: PowerUpEffect = {
+    type: type,
+    duration: duration,
+    active: true,
+    startTime: Date.now()
+  };
+  
+  activePowerUps.push(powerUp);
+  console.log(`Power-up activated: ${type} for ${duration}ms`);
+  
+  // Apply power-up effects based on type
+  switch (type) {
+    case 'invincible':
+      // Future: Make Cheep Cheep invincible with rainbow colors
+      break;
+    case 'speed':
+      // Future: Increase movement speed
+      break;
+    case 'magnet':
+      // Future: Attract coins automatically
+      break;
+  }
+}
+
+function updatePowerUps() {
+  const currentTime = Date.now();
+  
+  activePowerUps = activePowerUps.filter(powerUp => {
+    const elapsed = currentTime - powerUp.startTime;
+    
+    if (elapsed >= powerUp.duration) {
+      // Power-up expired
+      console.log(`Power-up expired: ${powerUp.type}`);
+      removePowerUpEffect(powerUp.type);
+      return false;
+    }
+    
+    return true;
+  });
+}
+
+function removePowerUpEffect(type: string) {
+  // Remove power-up effects based on type
+  switch (type) {
+    case 'invincible':
+      // Future: Remove invincibility
+      break;
+    case 'speed':
+      // Future: Reset speed to normal
+      break;
+    case 'magnet':
+      // Future: Disable coin magnet
+      break;
+  }
+}
+
+function hasPowerUp(type: string): boolean {
+  return activePowerUps.some(powerUp => powerUp.type === type && powerUp.active);
+}
+
+// Future implementation example for Star Power-up
+function spawnStarPowerUp(scene: Phaser.Scene, x: number, y: number) {
+  // This function will be used in the future to spawn star power-ups
+  // const star = powerUpGroup.create(x, y, 'star');
+  // star.setScale(0.8);
+  // star.body.setVelocityX(-200);
+  // star.body.setVelocityY(0);
+  // star.body.setGravityY(-800);
+  // star.setData('powerUpType', 'invincible');
+  // 
+  // // Add spinning animation
+  // scene.tweens.add({
+  //   targets: star,
+  //   rotation: Math.PI * 2,
+  //   duration: 1000,
+  //   repeat: -1,
+  //   ease: 'Linear'
+  // });
+  
+  console.log('Star power-up system ready for implementation');
+}
+
+// Future collision handler for star power-up
+function collectStarPowerUp(cheepCheep: any, star: any) {
+  // This function will handle star collection in the future
+  // addPowerUp('invincible', 10000); // 10 seconds of invincibility
+  // star.destroy();
+  // 
+  // // Visual effects for invincibility
+  // const scene = star.scene;
+  // scene.tweens.add({
+  //   targets: cheepCheep,
+  //   alpha: 0.7,
+  //   duration: 200,
+  //   yoyo: true,
+  //   repeat: -1
+  // });
+  
+  console.log('Star power-up collected (future implementation)');
+}
+
+function toggleAudio(this: Phaser.Scene) {
+  audioEnabled = !audioEnabled;
+  console.log('Audio toggled:', audioEnabled ? 'ON' : 'OFF');
+  
+  // Update audio indicator (we'll need to store reference)
+  // For now, just log the change
+}
+
+function handleInput(this: Phaser.Scene) {
+  // Resume audio context on first user interaction
+  resumeAudioContext();
+  
+  if (gameOver) {
+    // Restart game
+    this.scene.restart();
+    return;
+  }
+  
+  if (!gameStarted) {
+    gameStarted = true;
+    console.log('Game started!');
+    
+    // Remove menu elements with smooth fade out
+    const titleElements = bird.getData('titleElements');
+    if (titleElements) {
+      titleElements.forEach((element: any) => {
+        this.tweens.add({
+          targets: element,
+          alpha: 0,
+          duration: 300,
+          ease: 'Power2',
+          onComplete: () => {
+            element.destroy();
+          }
+        });
+      });
+    }
+  }
+  
+  // Make Cheep Cheep jump with flapping animation (Mario-style physics)
+  bird.setVelocityY(-320); // Slightly reduced for better control
+  
+  // Play Mario jump sound
+  playMarioJumpSound();
+  
+  // Trigger flapping animation with smooth tween
+  bird.setData('isFlapping', true);
+  bird.setData('flapTimer', 200); // Flap for 200ms
+  
+  // Smooth scale animation for flapping effect
+  const scene = this;
+  scene.tweens.add({
+    targets: bird,
+    scaleX: 1.1,
+    scaleY: 0.9,
+    duration: 100,
+    yoyo: true,
+    ease: 'Power2'
+  });
+  
+  console.log('Cheep Cheep jumps!');
+}
+
+function collectCoin(cheepCheep: any, coin: any) {
+  // Play Mario coin sound
+  playMarioCoinSound();
+  
+  // Smooth collection animation
+  coin.setScale(1.5);
+  coin.setAlpha(0.8);
+  
+  // Create sparkle effect with tween
+  const scene = coin.scene;
+  
+  // Create simple particle effect
+  for (let i = 0; i < 5; i++) {
+    const particle = scene.add.circle(coin.x, coin.y, 2, 0xFFD700);
+    scene.tweens.add({
+      targets: particle,
+      x: coin.x + Phaser.Math.Between(-30, 30),
+      y: coin.y + Phaser.Math.Between(-30, 30),
+      alpha: 0,
+      duration: 300,
+      ease: 'Power2',
+      onComplete: () => {
+        particle.destroy();
+      }
+    });
+  }
+  
+  scene.tweens.add({
+    targets: coin,
+    scaleX: 0,
+    scaleY: 0,
+    alpha: 0,
+    duration: 200,
+    ease: 'Power2',
+    onComplete: () => {
+      coin.destroy();
+    }
+  });
+  
+  // Add coin score
+  coinScore++;
+  const totalScore = score + (coinScore * marioConfig.coinValue);
+  scoreText.setText(`Score: ${score} | Coins: ${coinScore} | Total: ${totalScore}`);
+  
+  console.log('Coin collected! +' + marioConfig.coinValue + ' points');
+}
+
+function generatePipe(this: Phaser.Scene) {
+  if (gameOver) return;
+  
+  const gapSize = 180;
+  const minY = 150;
+  const maxY = 400;
+  const gapY = Phaser.Math.Between(minY, maxY);
+  
+  // Top pipe
+  const topPipe = pipes.create(850, gapY - gapSize/2, 'pipe');
+  topPipe.setOrigin(0.5, 1);
+  topPipe.setFlipY(true);
+  topPipe.body.setImmovable(true);
+  topPipe.body.setVelocityX(-200);
+  topPipe.body.setVelocityY(0);
+  topPipe.body.setGravityY(-1000); // Cancel gravity
+  topPipe.setData('scored', false);
+  
+  // Bottom pipe
+  const bottomPipe = pipes.create(850, gapY + gapSize/2, 'pipe');
+  bottomPipe.setOrigin(0.5, 0);
+  bottomPipe.body.setImmovable(true);
+  bottomPipe.body.setVelocityX(-200);
+  bottomPipe.body.setVelocityY(0);
+  bottomPipe.body.setGravityY(-1000); // Cancel gravity
+  bottomPipe.setData('scored', false);
+  
+  // Configurable chance to spawn a coin between pipes
+  if (Math.random() < marioConfig.coinSpawnRate) {
+    const coin = coins.create(850, gapY, 'coin');
+    coin.setScale(0.8);
+    coin.body.setVelocityX(-200);
+    coin.body.setVelocityY(0);
+    coin.body.setGravityY(-1000); // Cancel gravity
+    coin.setData('rotationSpeed', 0.1);
+    console.log('💰 Coin spawned!');
+  }
+  
+  console.log('🏗️ Generated pipe pair');
+}
+
+function handleGameOver(this: Phaser.Scene) {
+  if (gameOver) return;
+  
+  gameOver = true;
+  console.log('Game Over! Final Score:', score);
+  
+  // Play Mario hit sound
+  playMarioHitSound();
+  
+  // Stop bird
+  bird.setVelocity(0, 0);
+  
+  // Stop all pipes
+  pipes.children.entries.forEach((pipe: any) => {
+    pipe.body.setVelocity(0, 0);
+  });
+  
+  // Show game over text
+  this.add.text(400, 300, 'GAME OVER', {
+    fontSize: '48px',
+    fontFamily: 'Arial',
+    color: '#FF0000',
+    stroke: '#000000',
+    strokeThickness: 4
+  }).setOrigin(0.5);
+  
+  const totalScore = score + (coinScore * 10);
+  this.add.text(400, 340, `Pipes: ${score} | Coins: ${coinScore}`, {
+    fontSize: '20px',
+    fontFamily: 'Arial',
+    color: '#FFFFFF',
+    stroke: '#000000',
+    strokeThickness: 2
+  }).setOrigin(0.5);
+  
+  this.add.text(400, 365, `Total Score: ${totalScore}`, {
+    fontSize: '24px',
+    fontFamily: 'Arial',
+    color: '#FFD700',
+    stroke: '#000000',
+    strokeThickness: 3
+  }).setOrigin(0.5);
+  
+  this.add.text(400, 400, 'CLICK or SPACE to restart', {
+    fontSize: '20px',
+    fontFamily: 'Arial',
+    color: '#FFFF00',
+    stroke: '#000000',
+    strokeThickness: 2
+  }).setOrigin(0.5);
+  
+  // Save high score (using total score)
+  const highScore = parseInt(localStorage.getItem('flappyHighScore') || '0');
+  if (totalScore > highScore) {
+    localStorage.setItem('flappyHighScore', totalScore.toString());
+    this.add.text(400, 420, 'NEW HIGH SCORE!', {
+      fontSize: '20px',
+      fontFamily: 'Arial',
+      color: '#00FF00',
+      stroke: '#000000',
+      strokeThickness: 3
+    }).setOrigin(0.5);
+  } else {
+    this.add.text(400, 420, `Best: ${highScore}`, {
+      fontSize: '18px',
+      fontFamily: 'Arial',
+      color: '#CCCCCC',
+      stroke: '#000000',
+      strokeThickness: 2
+    }).setOrigin(0.5);
+  }
+}
+
+function updateMarioBrosParallax() {
+  // Move clouds slowly (parallax effect)
+  clouds.children.entries.forEach((cloud: any) => {
+    cloud.x -= marioConfig.parallaxCloudSpeed;
+    // Reset cloud position when it goes off screen
+    if (cloud.x < -100) {
+      cloud.x = 900;
+      cloud.y = Phaser.Math.Between(50, 200);
+    }
+  });
+  
+  // Move hills very slowly (background layer)
+  hills.children.entries.forEach((hill: any) => {
+    hill.x -= marioConfig.parallaxHillSpeed;
+    // Reset hill position when it goes off screen
+    if (hill.x < -200) {
+      hill.x = 1000;
+    }
+  });
+}
+
+function update(this: Phaser.Scene, time: number, delta: number) {
+  if (gameOver) return;
+  
+  // Performance monitoring
+  frameCount++;
+  if (time - lastTime >= 1000) {
+    const fps = Math.round(frameCount * 1000 / (time - lastTime));
+    fpsText.setText(`FPS: ${fps}`);
+    fpsText.setColor(fps >= 55 ? '#00FF00' : fps >= 30 ? '#FFFF00' : '#FF0000');
+    frameCount = 0;
+    lastTime = time;
+  }
+  
+  // Scroll ground
+  ground.tilePositionX += 2;
+  
+  // Mario Bros parallax scrolling
+  updateMarioBrosParallax();
+  
+  // Update power-up system
+  updatePowerUps();
+  
+  if (!gameStarted) return;
+  
+  // Cheep Cheep rotation and animation
+  if (bird.body.velocity.y > 0) {
+    // Falling - rotate down slightly (Mario style)
+    bird.setRotation(Math.min(0.3, bird.body.velocity.y * 0.001));
+  } else {
+    // Rising - slight upward angle
+    bird.setRotation(-0.2);
+  }
+  
+  // Handle flapping animation
+  const flapTimer = bird.getData('flapTimer');
+  if (flapTimer > 0) {
+    bird.setData('flapTimer', flapTimer - delta);
+    // Oscillate scale for flapping effect
+    const flapPhase = Math.sin((200 - flapTimer) * 0.05);
+    bird.setScale(1.0 + flapPhase * 0.1, 1.0 - flapPhase * 0.05);
+  } else {
+    // Return to normal scale
+    bird.setScale(1.0, 1.0);
+    bird.setData('isFlapping', false);
+  }
+  
+  // Check bounds
+  if (bird.y > 600 || bird.y < -50) {
+    handleGameOver.call(this);
+    return;
+  }
+  
+  // Generate pipes
+  pipeTimer += delta;
+  if (pipeTimer > 1800) {
+    generatePipe.call(this);
+    pipeTimer = 0;
+  }
+  
+  // Update coins animation
+  coins.children.entries.forEach((coin: any) => {
+    if (coin.body) {
+      // Ensure coins don't fall
+      coin.body.setVelocityY(0);
+      if (Math.abs(coin.body.velocity.x + 200) > 10) {
+        coin.body.setVelocityX(-200);
+      }
+      
+      // Rotate coin for classic Mario effect
+      const rotSpeed = coin.getData('rotationSpeed') || 0.1;
+      coin.rotation += rotSpeed;
+      
+      // Slight floating animation
+      coin.y += Math.sin(time * 0.005) * 0.5;
+    }
+    
+    // Remove off-screen coins
+    if (coin.x < -50) {
+      coin.destroy();
+    }
+  });
+  
+  // Update pipes and scoring
+  pipes.children.entries.forEach((pipe: any) => {
+    // Ensure pipes don't fall
+    if (pipe.body) {
+      pipe.body.setVelocityY(0);
+      if (Math.abs(pipe.body.velocity.x + 200) > 10) {
+        pipe.body.setVelocityX(-200);
+      }
+    }
+    
+    // Remove off-screen pipes
+    if (pipe.x < -100) {
+      pipe.destroy();
+      return;
+    }
+    
+    // Score when bird passes pipe
+    if (!pipe.getData('scored') && pipe.x < bird.x) {
+      pipe.setData('scored', true);
+      if (pipe.flipY) { // Only count top pipe
+        score++;
+        const totalScore = score + (coinScore * 10);
+        scoreText.setText(`Score: ${score} | Coins: ${coinScore} | Total: ${totalScore}`);
+        
+        // Play Mario score sound
+        playMarioScoreSound();
+        
+        console.log('Score:', score);
+      }
+    }
+  });
+}
+
+// Initialize the game
+const game = new Phaser.Game(config);
+
+// Global error handling
+window.addEventListener('error', (event) => {
+  console.error('Global error:', event.error);
+});
+
+export default game;

@@ -136,7 +136,7 @@
   - Aplicar paleta de colores clásica de Mario Bros
   - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5_
 
-- [ ] 20. Integrar sistema de audio estilo Mario Bros
+- [x] 20. Integrar sistema de audio estilo Mario Bros
   - Implementar sonido de salto estilo Mario para el Cheep Cheep
   - Añadir sonido clásico "ding" para recolección de monedas
   - Crear sonido de muerte/daño de Mario para colisiones
@@ -144,7 +144,7 @@
   - Asegurar funcionamiento sin audio cuando esté deshabilitado
   - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5_
 
-- [ ] 21. Optimizar rendimiento y pulir experiencia Mario Bros
+- [x] 21. Optimizar rendimiento y pulir experiencia Mario Bros
   - Optimizar sprites y animaciones para mantener 60 FPS
   - Ajustar física del Cheep Cheep para sentirse auténtico
   - Balancear frecuencia de aparición de monedas
@@ -152,7 +152,7 @@
   - Implementar sistema de configuración para elementos Mario Bros
   - _Requirements: 8.4, 12.4, 13.4, 14.4_
 
-- [ ] 22. Preparar base para power-ups futuros (Estrella)
+- [x] 22. Preparar base para power-ups futuros (Estrella)
   - Crear estructura base para sistema de power-ups
   - Implementar interfaces para efectos temporales
   - Diseñar sistema de estados del personaje (normal/invencible)
