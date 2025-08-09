@@ -45,6 +45,7 @@ let hills: Phaser.GameObjects.Group; // reutilizamos el nombre para los pinos
 // Mario Bros coins system
 let coins: Phaser.Physics.Arcade.Group;
 let coinScore = 0;
+let coinPoints = 0; // puntos acumulados de monedas (valor escalado)
 // Audio
 let mute = false;
 let muteButton: Phaser.GameObjects.Text;
@@ -92,8 +93,9 @@ function getDifficultyParams() {
 
 function formatScoreLine() {
   const { level } = getDifficultyParams();
-  const totalScore = score + (coinScore * 10);
-  return `Nivel: ${level} | Tuberías: ${score} | Monedas: ${coinScore} | Total: ${totalScore}`;
+  const coinValue = 10 + (level - 1) * 2; // escala lineal: lvl1=10, lvl10=28
+  const totalScore = score + coinScore * coinValue;
+  return `Nivel: ${level} | Monedas(${coinValue}) x${coinScore} | Tuberías: ${score} | Total: ${totalScore}`;
 }
 
 function preload(this: Phaser.Scene) {
@@ -245,6 +247,7 @@ function create(this: Phaser.Scene) {
   // Reset game state
   score = 0;
   coinScore = 0;
+  coinPoints = 0;
   gameOver = false;
   gameStarted = false;
   pipeTimer = 0;
@@ -354,8 +357,11 @@ function collectCoin(this: Phaser.Scene, cheepCheep: any, coin: any) {
   coin.setScale(1.2);
   coin.setAlpha(0.7);
   
-  // Add coin score
+  // Add coin score (count + scaled points)
   coinScore++;
+  const { level } = getDifficultyParams();
+  const coinValue = 10 + (level - 1) * 2;
+  coinPoints += coinValue;
   scoreText.setText(formatScoreLine());
   playTone(this, 1180, 160, 'triangle');
   
@@ -432,8 +438,10 @@ function handleGameOver(this: Phaser.Scene) {
     strokeThickness: 4
   }).setOrigin(0.5);
   
-  const totalScore = score + (coinScore * 10);
-  this.add.text(400, 340, `Tuberías: ${score} | Monedas: ${coinScore}`, {
+  const { level } = getDifficultyParams();
+  const coinValue = 10 + (level - 1) * 2; // consistente con formatScoreLine
+  const totalScore = score + coinScore * coinValue;
+  this.add.text(400, 340, `Tuberías: ${score} | Monedas: ${coinScore} (x${coinValue})`, {
     fontSize: '20px',
     fontFamily: 'Arial',
     color: '#FFFFFF',
