@@ -1,4 +1,6 @@
 import * as Phaser from 'phaser';
+// Asegurar tipo OscillatorType (en navegadores modernos ya existe)
+type OscillatorType = 'sine' | 'square' | 'sawtooth' | 'triangle';
 
 // Simple and stable game configuration
 const config: Phaser.Types.Core.GameConfig = {
@@ -43,6 +45,24 @@ let hills: Phaser.GameObjects.Group; // reutilizamos el nombre para los pinos
 // Mario Bros coins system
 let coins: Phaser.Physics.Arcade.Group;
 let coinScore = 0;
+// Audio
+let mute = false;
+let muteButton: Phaser.GameObjects.Text;
+function playTone(scene: Phaser.Scene, freq: number, durationMs = 140, type: OscillatorType = 'square', volume = 0.25) {
+  if (mute) return;
+  const anySound: any = (scene as any).sound;
+  const ctx: AudioContext | undefined = anySound?.context as AudioContext | undefined;
+  if (!ctx) return;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(volume, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + durationMs / 1000);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start();
+  osc.stop(ctx.currentTime + durationMs / 1000);
+}
 
 function preload(this: Phaser.Scene) {
   console.log('🎮 Loading game assets...');
@@ -118,6 +138,15 @@ function preload(this: Phaser.Scene) {
   graphics.fillStyle(0x5B3716); // marrón
   graphics.fillRect(18, 52, 8, 12);
   // Capas de hojas (triángulos apilados)
+
+    // Botón de mute
+    muteButton = this.add.text(788, 8, '🔊', {
+      fontSize: '24px', fontFamily: 'Arial', color: '#FFFFFF', stroke: '#000000', strokeThickness: 3
+    }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+    muteButton.on('pointerdown', () => {
+      mute = !mute;
+      muteButton.setText(mute ? '🔇' : '🔊');
+    });
   graphics.fillStyle(0x0E7A24);
   graphics.fillTriangle(10, 55, 34, 55, 22, 30); // superior
   graphics.fillTriangle(8, 62, 36, 62, 22, 36);  // media
@@ -147,6 +176,7 @@ function preload(this: Phaser.Scene) {
   
   graphics.generateTexture('coin', 24, 24);
   
+    playTone(this, 660, 140, 'square');
   graphics.destroy();
 }
 
@@ -238,6 +268,14 @@ function create(this: Phaser.Scene) {
       align: 'center'
     });
   instructionText.setOrigin(0.5);
+  // Botón mute
+  muteButton = this.add.text(788, 8, '🔊', {
+    fontSize: '24px', fontFamily: 'Arial', color: '#FFFFFF', stroke: '#000000', strokeThickness: 3
+  }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+  muteButton.on('pointerdown', () => {
+    mute = !mute;
+    muteButton.setText(mute ? '🔇' : '🔊');
+  });
   
   // Setup collisions
   this.physics.add.overlap(bird, groundBody, handleGameOver, undefined, this);
@@ -267,6 +305,7 @@ function handleInput(this: Phaser.Scene) {
   
   // Make Cheep Cheep jump with flapping animation
   bird.setVelocityY(-350);
+  playTone(this, 660, 140, 'square');
   
   // Trigger flapping animation
   bird.setData('isFlapping', true);
@@ -278,7 +317,7 @@ function handleInput(this: Phaser.Scene) {
   console.log('🐟 Cheep Cheep jumps!');
 }
 
-function collectCoin(cheepCheep: any, coin: any) {
+function collectCoin(this: Phaser.Scene, cheepCheep: any, coin: any) {
   // Remove coin with sparkle effect
   coin.setScale(1.2);
   coin.setAlpha(0.7);
@@ -287,6 +326,7 @@ function collectCoin(cheepCheep: any, coin: any) {
   coinScore++;
   const totalScore = score + (coinScore * 10);
   scoreText.setText(`Tuberías: ${score} | Monedas: ${coinScore} | Total: ${totalScore}`);
+  playTone(this, 1180, 160, 'triangle');
   
   // Destroy coin
   coin.destroy();
@@ -340,6 +380,9 @@ function handleGameOver(this: Phaser.Scene) {
   
   gameOver = true;
   console.log('💀 Game Over! Final Score:', score);
+  // Sonido game over
+  playTone(this, 440, 250, 'square', 0.3);
+  this.time.delayedCall(180, () => playTone(this, 330, 300, 'square', 0.25));
   
   // Stop bird
   bird.setVelocity(0, 0);
@@ -523,6 +566,7 @@ function update(this: Phaser.Scene, time: number, delta: number) {
           instructionText.destroy();
           instructionText = undefined;
         }
+  playTone(this as any, 880, 150, 'sawtooth');
         console.log('🎯 Score:', score);
       }
     }
