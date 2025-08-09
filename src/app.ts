@@ -48,15 +48,24 @@ let coinScore = 0;
 // Audio
 let mute = false;
 let muteButton: Phaser.GameObjects.Text;
-function playTone(scene: Phaser.Scene, freq: number, durationMs = 140, type: OscillatorType = 'square', volume = 0.25) {
+function playTone(
+  scene: Phaser.Scene,
+  freq: number,
+  durationMs = 140,
+  type: OscillatorType = 'square',
+  volume = 0.25,
+  jitter = 0.04 // variación relativa +/-4%
+) {
   if (mute) return;
   const anySound: any = (scene as any).sound;
   const ctx: AudioContext | undefined = anySound?.context as AudioContext | undefined;
-  if (!ctx) return;
+  if (!ctx) return; // WebAudio no disponible
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
+  const variation = 1 + (Math.random() * 2 - 1) * jitter;
+  const finalFreq = Math.max(20, freq * variation);
   osc.type = type;
-  osc.frequency.value = freq;
+  osc.frequency.value = finalFreq;
   gain.gain.setValueAtTime(volume, ctx.currentTime);
   gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + durationMs / 1000);
   osc.connect(gain).connect(ctx.destination);
