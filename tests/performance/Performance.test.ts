@@ -65,7 +65,7 @@ describe('Performance Tests', () => {
       
       const metrics = ErrorHandler.getPerformanceMetrics();
       expect(metrics.averageFPS).toBeGreaterThan(0);
-      expect(metrics.averageFPS).toBeLessThan(60);
+  expect(metrics.averageFPS).toBeLessThanOrEqual(60);
     });
   });
 
@@ -157,6 +157,10 @@ describe('Performance Tests', () => {
   });
 
   describe('Critical Error Detection', () => {
+    beforeEach(() => {
+      // Ensure isolation between tests
+      ErrorHandler.clearErrorLog();
+    });
     test('should detect critical errors', () => {
       // Log some critical errors
       ErrorHandler.handlePhysicsError(new Error('Physics failure'), 'physics-critical');

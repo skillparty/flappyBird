@@ -109,6 +109,8 @@ export default class ScoreManager {
    */
   saveHighScore(): boolean {
     try {
+  // Sync with stored high score (lazy load may have stale value)
+  this.getHighScore();
       if (this.scoreData.current > this.scoreData.high) {
         const oldHighScore = this.scoreData.high;
         this.scoreData.high = this.scoreData.current;
@@ -207,6 +209,14 @@ export default class ScoreManager {
    * Get high score
    */
   getHighScore(): number {
+    if (this.scoreData.high === 0) {
+      try {
+        const stored = StorageManager.getHighScore();
+        if (stored > this.scoreData.high) this.scoreData.high = stored;
+      } catch (e) {
+        // ignore storage errors
+      }
+    }
     return this.scoreData.high;
   }
 
@@ -262,6 +272,8 @@ export default class ScoreManager {
    */
   createHighScoreDisplay(scene: Phaser.Scene, x: number, y: number, config?: Partial<Phaser.Types.GameObjects.Text.TextStyle>): Phaser.GameObjects.Text {
     try {
+  // Ensure high score is up to date before creating display
+  this.getHighScore();
       const defaultStyle: Phaser.Types.GameObjects.Text.TextStyle = {
         fontSize: '20px',
         fontFamily: 'Arial',
@@ -338,6 +350,8 @@ export default class ScoreManager {
    */
   getStatistics(): { gamesPlayed: number; averageScore: number; bestScore: number } {
     try {
+  // Ensure bestScore is current
+  this.getHighScore();
       const gamesPlayed = StorageManager.getGamesPlayed();
       const totalScore = StorageManager.getTotalScore();
       const averageScore = gamesPlayed > 0 ? Math.round(totalScore / gamesPlayed) : 0;

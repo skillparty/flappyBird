@@ -84,8 +84,9 @@ describe('ScoreManager', () => {
 
   describe('High Score Management', () => {
     test('should load high score from storage', () => {
-      mockStorageManager.getHighScore.mockReturnValue(10);
-      const newScoreManager = ScoreManager.getInstance();
+  (ScoreManager as any).instance = undefined;
+  mockStorageManager.getHighScore.mockReturnValue(10);
+  const newScoreManager = ScoreManager.getInstance();
       expect(newScoreManager.getHighScore()).toBe(10);
     });
 
@@ -103,7 +104,9 @@ describe('ScoreManager', () => {
     });
 
     test('should not save if current score is not higher', () => {
-      mockStorageManager.getHighScore.mockReturnValue(10);
+  mockStorageManager.getHighScore.mockReturnValue(10);
+  // Force lazy reload
+  scoreManager.getHighScore(); // ensures internal high score is 10
       
       scoreManager.increment();
       scoreManager.increment();
@@ -135,6 +138,8 @@ describe('ScoreManager', () => {
 
     test('should create high score display', () => {
       mockStorageManager.getHighScore.mockReturnValue(15);
+  // Force reload of high score after changing mock return
+  scoreManager.getHighScore();
       const highScoreDisplay = scoreManager.createHighScoreDisplay(mockScene, 200, 100);
       expect(mockScene.add.text).toHaveBeenCalledWith(200, 100, 'High Score: 15', expect.any(Object));
     });
@@ -142,9 +147,14 @@ describe('ScoreManager', () => {
 
   describe('Statistics', () => {
     test('should return correct statistics', () => {
+  // Reset instance to avoid previous high score state leakage
+  (ScoreManager as any).instance = undefined;
+  scoreManager = ScoreManager.getInstance();
       mockStorageManager.getGamesPlayed.mockReturnValue(5);
       mockStorageManager.getTotalScore.mockReturnValue(50);
       mockStorageManager.getHighScore.mockReturnValue(15);
+  // Ensure internal high score reflects updated mock
+  scoreManager.getHighScore();
       
       const stats = scoreManager.getStatistics();
       expect(stats).toEqual({

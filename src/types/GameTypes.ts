@@ -21,6 +21,24 @@ export interface GameConfig {
   };
 }
 
+// Bird state machine
+export enum BirdState {
+  IDLE = 'IDLE',
+  JUMP = 'JUMP',
+  FALL = 'FALL',
+  HIT = 'HIT',
+  DEAD = 'DEAD'
+}
+
+// Pipe variants
+export enum PipeVariant {
+  STATIC = 'STATIC',
+  OSCILLATING = 'OSCILLATING',
+  NARROW = 'NARROW',
+  DOUBLE = 'DOUBLE',
+  DECORATED = 'DECORATED'
+}
+
 // Game state management
 export interface GameState {
   currentScore: number;
@@ -49,6 +67,13 @@ export interface PipeConfig {
   maxHeight: number;
 }
 
+// Difficulty settings returned per score tier
+export interface DifficultySettings {
+  speed: number; // negative (leftward) speed
+  gap: number; // current gap size
+  allowedVariants: PipeVariant[];
+}
+
 // Score data structure
 export interface ScoreData {
   current: number;
@@ -70,6 +95,17 @@ export interface Character {
   id: string;
   name: string;
   texture: string;
+  unlocked: boolean;
+}
+
+// Skin definition (can later include pipe tint & theme assets)
+export interface Skin {
+  id: string;
+  name: string;
+  birdTexture: string;
+  scale?: number;
+  hitboxShrink?: number; // 0..1 factor to shrink hitbox for accessibility
+  pipeTint?: number; // optional tint applied to pipes
   unlocked: boolean;
 }
 
@@ -98,4 +134,20 @@ export interface SceneData {
   score?: number;
   isNewHighScore?: boolean;
   selectedCharacter?: string;
+}
+
+// Telemetry events to balance design
+export interface TelemetryEvent {
+  timestamp: number;
+  type: 'collision' | 'pass' | 'spawn';
+  pipeVariant?: PipeVariant;
+  gap?: number;
+  speed?: number;
+  birdVelocityY?: number;
+  scoreAtEvent?: number;
+}
+
+export interface TelemetrySnapshot {
+  events: TelemetryEvent[];
+  collisionsByVariant: Record<string, number>;
 }

@@ -1,4 +1,4 @@
-import { PipeConfig } from '../types/GameTypes';
+import { PipeConfig, PipeVariant, DifficultySettings, TelemetryEvent } from '../types/GameTypes';
 import { GAME_CONFIG, GAME_CONSTANTS } from '../config/GameConfig';
 import ErrorHandler from '../managers/ErrorHandler';
 import Bird from './Bird';
@@ -18,15 +18,17 @@ export default class PipeManager {
   private lastSpawnTime: number;
   private pipeIdCounter: number;
   private isActive: boolean;
+  private telemetry: TelemetryEvent[] = [];
+  private difficultyFn?: (score: number) => DifficultySettings;
 
   constructor(scene: Phaser.Scene, config?: Partial<PipeConfig>) {
     this.scene = scene;
     this.config = {
-      speed: config?.speed || GAME_CONFIG.physics.pipeSpeed,
-      gap: config?.gap || GAME_CONFIG.gameplay.pipeGap,
-      spawnInterval: config?.spawnInterval || GAME_CONFIG.gameplay.pipeSpawnInterval,
-      minHeight: config?.minHeight || 100,
-      maxHeight: config?.maxHeight || 400
+  speed: config?.speed ?? GAME_CONFIG.physics.pipeSpeed,
+  gap: config?.gap ?? GAME_CONFIG.gameplay.pipeGap,
+  spawnInterval: config?.spawnInterval ?? GAME_CONFIG.gameplay.pipeSpawnInterval,
+  minHeight: config?.minHeight ?? 100,
+  maxHeight: config?.maxHeight ?? 400
     };
     
     this.activePipes = [];
@@ -96,13 +98,15 @@ export default class PipeManager {
     pipe.setActive(false);
     pipe.setVisible(false);
     pipe.setPosition(-100, -100); // Move off-screen
-    pipe.body?.setVelocity(0, 0);
+    if (pipe.body && 'setVelocity' in pipe.body) {
+      (pipe.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
+    }
   }
 
   /**
    * Generate a new pipe pair
    */
-  generatePipe(): void {
+  generatePipe(currentScore: number = 0): void {
     if (!this.isActive) return;
 
     try {
@@ -113,7 +117,14 @@ export default class PipeManager {
         return;
       }
 
-      // Calculate random gap position
+      // Optionally fetch dynamic difficulty settings
+      if (this.difficultyFn) {
+        const d = this.difficultyFn(currentScore);
+        this.config.speed = d.speed;
+        this.config.gap = d.gap;
+      }
+
+      // Calculate random gap position (respect dynamic gap)
       const gapCenter = Phaser.Math.Between(
         this.config.minHeight + this.config.gap / 2,
         this.config.maxHeight - this.config.gap / 2
@@ -132,7 +143,7 @@ export default class PipeManager {
       bottomPipe.setPosition(GAME_CONSTANTS.PIPE_SPAWN_X, gapCenter + this.config.gap / 2);
       bottomPipe.setOrigin(0.5, 0); // Top of sprite for bottom pipe
 
-      // Set physics properties
+  // Set physics properties
       if (topPipe.body && bottomPipe.body) {
         const topBody = topPipe.body as Phaser.Physics.Arcade.Body;
         const bottomBody = bottomPipe.body as Phaser.Physics.Arcade.Body;
@@ -142,6 +153,10 @@ export default class PipeManager {
         topBody.setImmovable(true);
         bottomBody.setImmovable(true);
       }
+
+  // Determine variant
+  const variant = this.chooseVariant(currentScore);
+  this.applyVariantBehavior(variant, topPipe, bottomPipe, gapCenter);
 
       // Create pipe pair object
       const pipePair: PipePair = {
@@ -154,7 +169,16 @@ export default class PipeManager {
       this.activePipes.push(pipePair);
       this.lastSpawnTime = currentTime;
 
-      console.log(`Generated pipe pair ${pipePair.id} at gap center: ${gapCenter}`);
+      console.log(`Generated pipe pair ${pipePair.id} (${variant}) at gap center: ${gapCenter}`);
+
+      // Telemetry spawn event
+      this.telemetry.push({
+        timestamp: Date.now(),
+        type: 'spawn',
+        pipeVariant: variant,
+        gap: this.config.gap,
+        speed: this.config.speed
+      });
       
     } catch (error) {
       ErrorHandler.handleGameplayError(error as Error, 'pipe-generation');
@@ -164,7 +188,7 @@ export default class PipeManager {
   /**
    * Update all active pipes
    */
-  updatePipes(): void {
+  updatePipes(currentScore: number = 0): void {
     if (!this.isActive) return;
 
     try {
@@ -183,7 +207,7 @@ export default class PipeManager {
       });
 
       // Generate new pipes if needed
-      this.generatePipe();
+  this.generatePipe(currentScore);
       
     } catch (error) {
       ErrorHandler.handleGameplayError(error as Error, 'pipe-update');
@@ -201,12 +225,14 @@ export default class PipeManager {
         // Check collision with top pipe
         if (this.scene.physics.overlap(bird, pipePair.top)) {
           console.log(`Collision detected with top pipe ${pipePair.id}`);
+          this.recordCollision(pipePair);
           return true;
         }
         
         // Check collision with bottom pipe
         if (this.scene.physics.overlap(bird, pipePair.bottom)) {
           console.log(`Collision detected with bottom pipe ${pipePair.id}`);
+          this.recordCollision(pipePair);
           return true;
         }
       }
@@ -348,6 +374,81 @@ export default class PipeManager {
   }
 
   /**
+   * Provide a difficulty function that maps current score to difficulty settings
+   */
+  setDifficultyFunction(fn: (score: number) => DifficultySettings): void {
+    this.difficultyFn = fn;
+  }
+
+  private chooseVariant(score: number): PipeVariant {
+    if (!this.difficultyFn) return PipeVariant.STATIC;
+    const settings = this.difficultyFn(score);
+    if (settings.allowedVariants.length === 0) return PipeVariant.STATIC;
+    return Phaser.Utils.Array.GetRandom(settings.allowedVariants);
+  }
+
+  private applyVariantBehavior(variant: PipeVariant, topPipe: Phaser.Physics.Arcade.Sprite, bottomPipe: Phaser.Physics.Arcade.Sprite, gapCenter: number): void {
+    switch (variant) {
+      case PipeVariant.OSCILLATING: {
+        const amplitude = 30;
+        const duration = 2000;
+        this.scene.tweens.add({
+          targets: [topPipe, bottomPipe],
+          y: `+=${amplitude}`,
+          yoyo: true,
+          repeat: -1,
+          duration,
+          ease: 'Sine.inOut'
+        });
+        break;
+      }
+      case PipeVariant.NARROW: {
+        // Make gap smaller visually (already adjusted via difficulty gap maybe)
+        break;
+      }
+      case PipeVariant.DOUBLE: {
+        // Spawn an extra immediate pair slightly offset
+        const extraTop = this.getPipeFromPool();
+        const extraBottom = this.getPipeFromPool();
+        extraTop.setPosition(topPipe.x + 250, topPipe.y);
+        extraTop.setFlipY(true);
+        extraTop.setOrigin(0.5, 1);
+        extraBottom.setPosition(bottomPipe.x + 250, bottomPipe.y);
+        extraBottom.setOrigin(0.5, 0);
+        if (extraTop.body && extraBottom.body) {
+          (extraTop.body as Phaser.Physics.Arcade.Body).setVelocityX(this.config.speed);
+          (extraBottom.body as Phaser.Physics.Arcade.Body).setVelocityX(this.config.speed);
+          (extraTop.body as Phaser.Physics.Arcade.Body).setImmovable(true);
+          (extraBottom.body as Phaser.Physics.Arcade.Body).setImmovable(true);
+        }
+        this.activePipes.push({ top: extraTop, bottom: extraBottom, scored: false, id: this.pipeIdCounter++ });
+        break;
+      }
+      case PipeVariant.DECORATED: {
+        // Simple tint to differentiate
+        const tint = 0x88ff88;
+        topPipe.setTint(tint);
+        bottomPipe.setTint(tint);
+        break;
+      }
+      case PipeVariant.STATIC:
+      default:
+        break;
+    }
+  }
+
+  private recordCollision(pipePair: PipePair): void {
+    this.telemetry.push({
+      timestamp: Date.now(),
+      type: 'collision'
+    });
+  }
+
+  getTelemetry(): TelemetryEvent[] {
+    return [...this.telemetry];
+  }
+
+  /**
    * Get current configuration
    */
   getConfig(): PipeConfig {
@@ -384,6 +485,31 @@ export default class PipeManager {
       
     } catch (error) {
       ErrorHandler.handleGameplayError(error as Error, 'pipe-manager-destroy');
+    }
+  }
+
+  /**
+   * Test helper: force an immediate spawn bypassing timing & difficulty (Jest only)
+   */
+  forceSpawnForTest(): void {
+    if (!(process as any)?.env?.JEST_WORKER_ID) return;
+    try {
+      const gapCenter = (this.config.minHeight + this.config.maxHeight) / 2;
+      const topPipe = this.getPipeFromPool();
+      const bottomPipe = this.getPipeFromPool();
+      topPipe.setPosition(GAME_CONSTANTS.PIPE_SPAWN_X, gapCenter - this.config.gap / 2).setFlipY(true).setOrigin(0.5,1);
+      bottomPipe.setPosition(GAME_CONSTANTS.PIPE_SPAWN_X, gapCenter + this.config.gap / 2).setOrigin(0.5,0);
+      if (topPipe.body && bottomPipe.body) {
+        (topPipe.body as Phaser.Physics.Arcade.Body).setVelocityX(this.config.speed);
+        (bottomPipe.body as Phaser.Physics.Arcade.Body).setVelocityX(this.config.speed);
+        (topPipe.body as Phaser.Physics.Arcade.Body).setImmovable(true);
+        (bottomPipe.body as Phaser.Physics.Arcade.Body).setImmovable(true);
+      }
+      const pipePair: PipePair = { top: topPipe, bottom: bottomPipe, scored: false, id: this.pipeIdCounter++ };
+      this.activePipes.push(pipePair);
+      this.telemetry.push({ timestamp: Date.now(), type: 'spawn', gap: this.config.gap, speed: this.config.speed });
+    } catch (e) {
+      ErrorHandler.handleGameplayError(e as Error, 'pipe-force-spawn-test');
     }
   }
 }

@@ -1,9 +1,14 @@
 import 'phaser';
+import Bird from '../components/Bird';
+import PipeManager from '../components/PipeManager';
+import DifficultyManager from '../managers/DifficultyManager';
+import SkinManager from '../managers/SkinManager';
+import { BirdState } from '../types/GameTypes';
 
 export default class Game extends Phaser.Scene {
   // Core game objects
-  private bird!: Phaser.Physics.Arcade.Sprite;
-  private pipes!: Phaser.Physics.Arcade.Group;
+  private bird!: Bird;
+  private pipeManager!: PipeManager;
   private ground!: Phaser.GameObjects.TileSprite;
   private background!: Phaser.GameObjects.Image;
   private clouds!: Phaser.Physics.Arcade.Group;
@@ -16,8 +21,8 @@ export default class Game extends Phaser.Scene {
   private score: number = 0;
   private gameStarted: boolean = false;
   private gameOver: boolean = false;
-  private pipeTimer: number = 0;
-  private pipeDelay: number = 1800; // ms between pipes
+  private lastPipeSpawnScoreCheck: number = 0;
+  private highContrastOutline: boolean = false;
 
   constructor() {
     super('Game');
@@ -34,13 +39,13 @@ export default class Game extends Phaser.Scene {
     this.createClouds();
     this.createGround();
     this.createBird();
-    this.createPipes();
+  this.createPipeManager();
     
     // Setup UI
     this.createUI();
     
     // Setup physics and collisions
-    this.setupPhysics();
+  this.setupPhysics();
     
     // Setup input
     this.setupInput();
@@ -52,7 +57,6 @@ export default class Game extends Phaser.Scene {
     this.score = 0;
     this.gameStarted = false;
     this.gameOver = false;
-    this.pipeTimer = 0;
   }
 
   private createBackground(): void {
@@ -87,7 +91,7 @@ export default class Game extends Phaser.Scene {
     
     // Ground physics body (invisible collision) - completely static
     const groundBody = this.physics.add.staticGroup();
-    const groundCollider = groundBody.create(400, 570, null);
+  const groundCollider = groundBody.create(400, 570, undefined);
     groundCollider.setSize(800, 60);
     groundCollider.setVisible(false);
     groundCollider.refreshBody(); // Ensure static body is properly set
@@ -99,31 +103,22 @@ export default class Game extends Phaser.Scene {
   }
 
   private createBird(): void {
-    // Create bird with stable physics
-    this.bird = this.physics.add.sprite(150, 300, 'bird');
-    this.bird.setScale(1);
-    this.bird.setDepth(5);
-    
-    // Configure bird physics for stable flight
-    this.bird.body.setSize(30, 20);
-    this.bird.body.setOffset(2, 2); // Center the collision box
-    this.bird.setCollideWorldBounds(false); // Allow bird to go off-screen for game over
-    
-    // Set realistic flight physics
-    this.bird.body.setDrag(0, 100); // Air resistance
-    this.bird.body.setMaxVelocity(300, 500); // Limit max speeds
-    this.bird.body.setBounce(0, 0); // No bouncing
-    
-    console.log('🐦 Bird created with stable physics');
+    // Use Bird component with state machine & skins
+    const skin = SkinManager.getInstance().getSelectedSkin();
+    this.bird = new Bird(this, { x: 150, y: 300, texture: skin.birdTexture, jumpForce: -400, maxRotation: 30 });
+    this.bird.applySkin(skin);
+    // Physics adjustments
+    if (this.bird.body) {
+      const body = this.bird.body as Phaser.Physics.Arcade.Body;
+      body.setAllowGravity(true);
+      body.setMaxVelocity(300, 600);
+    }
+    console.log('🐦 Bird (component) created');
   }
 
-  private createPipes(): void {
-    // Create pipe group with custom physics settings
-    this.pipes = this.physics.add.group({
-      // Configure all pipes to be immovable and not affected by gravity
-      immovable: true,
-      allowGravity: false
-    });
+  private createPipeManager(): void {
+    this.pipeManager = new PipeManager(this, {});
+    this.pipeManager.setDifficultyFunction(DifficultyManager.getSettings);
   }
 
   private createUI(): void {
@@ -154,25 +149,22 @@ export default class Game extends Phaser.Scene {
 
   private setupPhysics(): void {
     // Bird vs Ground collision
-    this.physics.add.overlap(this.bird, this.physics.world.staticBodies, () => {
-      this.handleGameOver();
-    });
+  // Use world bounds check manually; collisions with ground handled via Y position in update.
 
-    // Bird vs Pipes collision
-    this.physics.add.overlap(this.bird, this.pipes, () => {
-      this.handleGameOver();
-    });
+  // Pipe collisions checked manually via manager each frame
   }
 
   private setupInput(): void {
     // Mouse/touch input
-    this.input.on('pointerdown', () => {
-      this.handleJump();
-    });
+  this.input.on('pointerdown', () => { this.handleJump(); });
 
     // Keyboard input
-    this.input.keyboard?.on('keydown-SPACE', () => {
-      this.handleJump();
+    this.input.keyboard?.on('keydown-SPACE', () => { this.handleJump(); });
+
+    // Toggle outline (O)
+    this.input.keyboard?.on('keydown-O', () => {
+      this.highContrastOutline = !this.highContrastOutline;
+      this.bird.setOutlineVisible(this.highContrastOutline);
     });
 
     // ESC to return to menu
@@ -193,11 +185,7 @@ export default class Game extends Phaser.Scene {
     }
 
     // Make bird jump
-    this.bird.setVelocityY(-350);
-    
-    // Rotate bird upward
-    this.tweens.killTweensOf(this.bird);
-    this.bird.setRotation(-0.3);
+  this.bird.jump();
   }
 
   private startGame(): void {
@@ -207,74 +195,19 @@ export default class Game extends Phaser.Scene {
     console.log('🚀 Game started!');
   }
 
-  private generatePipe(): void {
-    if (this.gameOver) return;
-
-    const gapSize = 180;
-    const minPipeHeight = 100;
-    const maxPipeHeight = 400;
-    
-    // Random gap position
-    const gapY = Phaser.Math.Between(minPipeHeight + gapSize/2, maxPipeHeight - gapSize/2);
-    
-    // Top pipe - Create as static body (no physics)
-    const topPipe = this.pipes.create(850, gapY - gapSize/2, 'pipe');
-    topPipe.setOrigin(0.5, 1); // Bottom of sprite
-    topPipe.setFlipY(true);
-    topPipe.setDepth(1);
-    
-    // Remove physics body and make it purely kinematic
-    topPipe.body.setImmovable(true);
-    topPipe.body.setVelocityX(-200);
-    topPipe.body.setVelocityY(0); // Ensure no vertical movement
-    topPipe.body.setGravityY(-1200); // Cancel out world gravity
-    
-    // Bottom pipe - Create as static body (no physics)
-    const bottomPipe = this.pipes.create(850, gapY + gapSize/2, 'pipe');
-    bottomPipe.setOrigin(0.5, 0); // Top of sprite
-    bottomPipe.setDepth(1);
-    
-    // Remove physics body and make it purely kinematic
-    bottomPipe.body.setImmovable(true);
-    bottomPipe.body.setVelocityX(-200);
-    bottomPipe.body.setVelocityY(0); // Ensure no vertical movement
-    bottomPipe.body.setGravityY(-1200); // Cancel out world gravity
-    
-    // Mark pipes for scoring
-    topPipe.setData('scored', false);
-    bottomPipe.setData('scored', false);
-    
-    console.log('🏗️ Generated stable pipe pair at gap:', gapY);
-  }
+  // Pipe generation handled by manager
 
   private updatePipes(): void {
-    // Update and clean up pipes
-    this.pipes.children.entries.forEach((pipe: any) => {
-      // Ensure pipes maintain their horizontal movement only
-      if (pipe.body) {
-        pipe.body.setVelocityY(0); // Force no vertical movement
-        
-        // Ensure pipes stay at their intended position
-        if (Math.abs(pipe.body.velocity.x + 200) > 5) {
-          pipe.body.setVelocityX(-200); // Maintain consistent speed
-        }
-      }
-      
-      // Remove off-screen pipes
-      if (pipe.x < -100) {
-        pipe.destroy();
-        return;
-      }
-      
-      // Score when bird passes pipe
-      if (!pipe.getData('scored') && pipe.x < this.bird.x) {
-        pipe.setData('scored', true);
-        // Only count once per pipe pair (use top pipe)
-        if (pipe.flipY) { 
-          this.incrementScore();
-        }
-      }
-    });
+    // Delegated to pipe manager
+    this.pipeManager.updatePipes(this.score);
+    // Scoring
+    if (this.pipeManager.checkScoring(this.bird)) {
+      this.incrementScore();
+    }
+    // Collision
+    if (this.pipeManager.checkCollisions(this.bird)) {
+      this.handleGameOver();
+    }
   }
 
   private updateClouds(): void {
@@ -309,17 +242,13 @@ export default class Game extends Phaser.Scene {
     console.log('💀 Game Over! Score:', this.score);
     
     // Stop bird movement completely
-    this.bird.setVelocity(0, 0);
-    this.bird.body.setAcceleration(0, 0);
+    if (this.bird.body && 'setVelocity' in this.bird.body) {
+      (this.bird.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
+      (this.bird.body as Phaser.Physics.Arcade.Body).setAcceleration(0, 0);
+    }
     
-    // Stop all pipes completely
-    this.pipes.children.entries.forEach((pipe: any) => {
-      if (pipe.body) {
-        pipe.body.setVelocity(0, 0);
-        pipe.body.setAcceleration(0, 0);
-        pipe.body.setImmovable(true);
-      }
-    });
+  // Stop pipe manager
+  this.pipeManager.stop();
     
     // Show game over UI
     this.showGameOverUI();
@@ -399,11 +328,8 @@ export default class Game extends Phaser.Scene {
     
     if (!this.gameStarted) return;
     
-    // Bird rotation based on velocity
-    if (this.bird.body.velocity.y > 0) {
-      // Falling - rotate downward
-      this.bird.setRotation(Math.min(1.5, this.bird.body.velocity.y * 0.003));
-    }
+  // Bird update (rotation handled internally)
+  this.bird.update();
     
     // Check if bird is out of bounds
     if (this.bird.y > 600 || this.bird.y < -50) {
@@ -411,14 +337,7 @@ export default class Game extends Phaser.Scene {
       return;
     }
     
-    // Generate pipes
-    this.pipeTimer += delta;
-    if (this.pipeTimer > this.pipeDelay) {
-      this.generatePipe();
-      this.pipeTimer = 0;
-    }
-    
-    // Update pipes
-    this.updatePipes();
+  // Update pipes and collisions
+  this.updatePipes();
   }
 }

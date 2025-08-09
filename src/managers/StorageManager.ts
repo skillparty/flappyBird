@@ -1,6 +1,7 @@
 import ErrorHandler from './ErrorHandler';
 
 export default class StorageManager {
+  private static cachedAvailability: boolean | undefined;
   private static readonly KEYS = {
     HIGH_SCORE: 'flappyBird_highScore',
     SELECTED_CHARACTER: 'flappyBird_selectedCharacter',
@@ -12,12 +13,15 @@ export default class StorageManager {
   };
 
   private static isStorageAvailable(): boolean {
+    if (this.cachedAvailability !== undefined) return this.cachedAvailability;
     try {
       const test = '__storage_test__';
       localStorage.setItem(test, test);
       localStorage.removeItem(test);
+      this.cachedAvailability = true;
       return true;
     } catch {
+      this.cachedAvailability = false;
       return false;
     }
   }

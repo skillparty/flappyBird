@@ -1,4 +1,4 @@
-import { BirdConfig } from '../types/GameTypes';
+import { BirdConfig, BirdState, Skin } from '../types/GameTypes';
 import { GAME_CONFIG, GAME_CONSTANTS } from '../config/GameConfig';
 import ErrorHandler from '../managers/ErrorHandler';
 
@@ -11,6 +11,10 @@ export default class Bird extends Phaser.Physics.Arcade.Sprite {
   private jumpCooldown: number;
   private lastJumpTime: number;
   private animationTween?: Phaser.Tweens.Tween;
+  public state: BirdState = BirdState.IDLE; // public to avoid TS private mismatch with Phaser structural typing
+  private stateTimer: number = 0;
+  private currentSkin?: Skin;
+  private outlineGraphics?: Phaser.GameObjects.Graphics; // accessibility/high-contrast outline
 
   constructor(scene: Phaser.Scene, config: BirdConfig) {
     super(scene, config.x, config.y, config.texture);
@@ -25,8 +29,9 @@ export default class Bird extends Phaser.Physics.Arcade.Sprite {
     this.lastJumpTime = 0;
 
     // Add to scene and enable physics
-    scene.add.existing(this);
-    scene.physics.add.existing(this);
+  // Cast to any to satisfy Phaser's GameObject typing quirks with private members
+  scene.add.existing(this as unknown as Phaser.GameObjects.GameObject);
+  scene.physics.add.existing(this as unknown as Phaser.GameObjects.GameObject);
 
     // Configure physics body
     this.setupPhysics();
@@ -34,8 +39,15 @@ export default class Bird extends Phaser.Physics.Arcade.Sprite {
     // Setup visual properties
     this.setupVisuals();
     
-    // Setup animations
-    this.setupAnimations();
+  // Setup animations / state visuals
+  this.setupAnimations();
+
+  // Create outline graphics (initially hidden) for high contrast or debug hitbox
+    if ((scene.add as any).graphics) {
+      this.outlineGraphics = scene.add.graphics({ lineStyle: { width: 2, color: 0x000000, alpha: 0.5 } });
+      this.outlineGraphics.setDepth(11);
+      this.updateOutline();
+    }
   }
 
   /**
@@ -90,8 +102,9 @@ export default class Bird extends Phaser.Physics.Arcade.Sprite {
    */
   private setupAnimations(): void {
     try {
-      // Create idle floating animation
-      this.createIdleAnimation();
+  // Placeholder: real wing-flap frames would be added via spritesheet preload.
+  // For now keep idle tween and simple scale pulses as state feedback.
+  this.createIdleAnimation();
       
     } catch (error) {
       ErrorHandler.handleGameplayError(error as Error, 'bird-animation-setup');
@@ -133,11 +146,14 @@ export default class Bird extends Phaser.Physics.Arcade.Sprite {
       if (this.body) {
         const body = this.body as Phaser.Physics.Arcade.Body;
         
-        // Apply jump force
-        body.setVelocityY(this.jumpForce);
+  // Apply jump force (reset downward velocity first for consistent feel)
+  body.setVelocityY(this.jumpForce);
         
         // Update last jump time
         this.lastJumpTime = currentTime;
+
+  // Set state to JUMP
+  this.setBirdState(BirdState.JUMP);
         
         // Play jump sound
         try {
@@ -157,8 +173,8 @@ export default class Bird extends Phaser.Physics.Arcade.Sprite {
           // Effects are optional
         }
         
-        // Create jump animation effect
-        this.createJumpEffect();
+  // Create jump animation effect
+  this.createJumpEffect();
         
         // Stop idle animation during jump
         if (this.animationTween) {
@@ -219,6 +235,10 @@ export default class Bird extends Phaser.Physics.Arcade.Sprite {
       const newRotation = currentRotation + (rotationDiff * 0.1);
       
       this.setRotation(newRotation * (Math.PI / 180)); // Convert back to radians
+      // State transitions based on vertical velocity
+      if (velocity > 50 && this.state !== BirdState.FALL && this.state !== BirdState.JUMP) {
+        this.setBirdState(BirdState.FALL);
+      }
       
     } catch (error) {
       ErrorHandler.handlePhysicsError(error as Error, 'bird-rotation-update');
@@ -248,6 +268,7 @@ export default class Bird extends Phaser.Physics.Arcade.Sprite {
       // Reset state
       this.isAlive = true;
       this.lastJumpTime = 0;
+  this.setBirdState(BirdState.IDLE, true);
       
       // Restart idle animation
       this.createIdleAnimation();
@@ -264,7 +285,8 @@ export default class Bird extends Phaser.Physics.Arcade.Sprite {
     if (!this.isAlive) return;
     
     try {
-      this.isAlive = false;
+  this.isAlive = false;
+  this.setBirdState(BirdState.DEAD);
       
       // Stop all animations
       if (this.animationTween) {
@@ -324,6 +346,12 @@ export default class Bird extends Phaser.Physics.Arcade.Sprite {
       
       // Check if bird is out of bounds
       this.checkBounds();
+      this.stateTimer += this.scene.game.loop.delta;
+      // If in JUMP state for >200ms and moving downward, switch to FALL
+      if (this.state === BirdState.JUMP && this.stateTimer > 200 && this.body && (this.body as Phaser.Physics.Arcade.Body).velocity.y > 0) {
+        this.setBirdState(BirdState.FALL);
+      }
+      this.updateOutline();
       
     } catch (error) {
       ErrorHandler.handleGameplayError(error as Error, 'bird-update');
@@ -365,6 +393,81 @@ export default class Bird extends Phaser.Physics.Arcade.Sprite {
       }
     } catch (error) {
       ErrorHandler.handleGameplayError(error as Error, 'bird-texture-change');
+    }
+  }
+
+  /**
+   * Apply a skin (texture + optional scale, hitbox adjustments, pipe tint handled elsewhere)
+   */
+  applySkin(skin: Skin): void {
+    try {
+      this.currentSkin = skin;
+      this.setCharacterTexture(skin.birdTexture);
+      if (skin.scale) {
+        this.setScale(skin.scale);
+      }
+      // Adjust hitbox if shrink factor provided
+      if (this.body && skin.hitboxShrink) {
+        const body = this.body as Phaser.Physics.Arcade.Body;
+        const shrink = Phaser.Math.Clamp(1 - skin.hitboxShrink, 0.3, 1);
+        body.setSize(this.width * shrink, this.height * shrink);
+        body.setOffset((this.width - this.width * shrink) / 2, (this.height - this.height * shrink) / 2);
+      }
+      this.updateOutline();
+    } catch (error) {
+      ErrorHandler.handleGameplayError(error as Error, 'bird-apply-skin');
+    }
+  }
+
+  /**
+   * Enable or disable outline (e.g., high contrast / debug)
+   */
+  setOutlineVisible(visible: boolean): void {
+    if (this.outlineGraphics) {
+      this.outlineGraphics.setVisible(visible);
+      if (visible) this.updateOutline();
+    }
+  }
+
+  private updateOutline(): void {
+    if (!this.outlineGraphics) return;
+    this.outlineGraphics.clear();
+    if (!this.outlineGraphics.visible) return;
+    // Draw approximate hitbox
+    if (this.body) {
+      const body = this.body as Phaser.Physics.Arcade.Body;
+      this.outlineGraphics.lineStyle(2, 0x000000, 0.6);
+      this.outlineGraphics.strokeRect(this.x - this.displayWidth * this.originX + body.offset.x, this.y - this.displayHeight * this.originY + body.offset.y, body.width, body.height);
+    }
+  }
+
+  /**
+   * Set current bird state; optionally force without animation cleanup
+   */
+  private setBirdState(newState: BirdState, force: boolean = false): void {
+    if (!force && this.state === newState) return;
+    this.state = newState;
+    this.stateTimer = 0;
+    try {
+      switch (newState) {
+        case BirdState.IDLE:
+          if (this.animationTween) this.animationTween.resume();
+          break;
+        case BirdState.JUMP:
+          if (this.animationTween) this.animationTween.pause();
+          break;
+        case BirdState.FALL:
+          // Could adjust frame or tint
+          break;
+        case BirdState.HIT:
+          this.setTint(0xff5555);
+          break;
+        case BirdState.DEAD:
+          this.clearTint();
+          break;
+      }
+    } catch (error) {
+      ErrorHandler.handleGameplayError(error as Error, 'bird-set-state');
     }
   }
 

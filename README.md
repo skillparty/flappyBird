@@ -188,10 +188,53 @@ El juego incluye optimizaciones automáticas:
 
 ### Configuración de Rendimiento
 El sistema ajusta automáticamente:
-1. **Efectos de partículas** (se desactivan primero)
-2. **Fondo parallax** (se simplifica)
+1. **Efectos de partículas** (frecuencia reducida)
+2. **Tweens secundarios** (pueden cancelarse)
 3. **Animaciones** (se reducen)
-4. **Número de tuberías** (se limita)
+4. **Número / frecuencia de tuberías** (ajustado vía dificultad)
+
+### Detección en Entorno de Test
+En entorno de pruebas (Jest) la detección de bajo rendimiento se acelera para validar comportamientos sin esperar largos intervalos. Esto permite que los tests de `Performance.test.ts` verifiquen optimizaciones en un tiempo razonable.
+
+## 🛠️ Dificultad Dinámica y Variantes de Tuberías
+
+Se añadió un sistema de dificultad progresiva mediante `DifficultyManager` que ajusta:
+- **Velocidad de tuberías**: Aumenta gradualmente con la puntuación
+- **Tamaño del hueco**: Se reduce con la progresión, hasta un mínimo seguro
+- **Variantes permitidas**: Nuevos patrones se habilitan por umbrales de score
+
+### Variantes Disponibles
+- `STATIC`: Comportamiento clásico
+- `OSCILLATING`: Par de tuberías se desplaza suavemente en eje Y
+- `NARROW`: Hueco reducido (apoya el aumento de dificultad visual)
+- `DECORATED`: Tuberías con tintado diferenciador
+- `DOUBLE`: Genera un segundo par desplazado para un reto extra
+
+La selección de variantes es aleatoria entre las permitidas por la dificultad actual. Telemetría básica se recolecta (evento de spawn y colisiones) para futuras herramientas de análisis o balance.
+
+## 📊 Telemetría Interna
+
+El `PipeManager` registra eventos mínimos (spawn, collision) con datos como variante y configuraciones activas (gap, speed). Esto sirve como punto de partida para futuras visualizaciones de balance.
+
+### Uso de Telemetría (Ejemplos)
+```ts
+import PipeManager from './components/PipeManager';
+
+// Obtener eventos registrados
+const telemetry = pipeManager.getTelemetry();
+
+// Filtrar spawns por variante
+const oscillatingSpawns = telemetry.filter(e => e.type === 'spawn' && e.pipeVariant === 'OSCILLATING');
+
+// Calcular gap promedio usado
+const avgGap = (() => {
+  const gaps = telemetry.filter(e => e.type === 'spawn' && typeof e.gap === 'number').map(e => e.gap!);
+  return gaps.length ? gaps.reduce((a,b)=>a+b,0)/gaps.length : 0;
+})();
+
+console.log('Spawn OSCILLATING:', oscillatingSpawns.length, 'Gap promedio:', avgGap);
+```
+Esto permitirá en el futuro construir paneles de análisis o ajustar la curva de dificultad basados en datos reales de sesión.
 
 ## 🐛 Manejo de Errores
 

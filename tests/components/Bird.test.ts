@@ -1,5 +1,5 @@
 import Bird from '../../src/components/Bird';
-import { BirdConfig } from '../../src/types/GameTypes';
+import { BirdConfig, BirdState } from '../../src/types/GameTypes';
 
 describe('Bird Component', () => {
   let mockScene: any;
@@ -34,6 +34,8 @@ describe('Bird Component', () => {
     };
 
     bird = new Bird(mockScene, birdConfig);
+  // Ensure outline disabled for tests to avoid graphics side-effects
+  bird.setOutlineVisible(false);
   });
 
   afterEach(() => {
@@ -44,9 +46,10 @@ describe('Bird Component', () => {
 
   describe('Initialization', () => {
     test('should create bird with correct configuration', () => {
-      expect(bird.x).toBe(100);
-      expect(bird.y).toBe(300);
-      expect(bird.texture.key).toBe('bird');
+  expect((bird as any).x).toBe(100);
+  expect((bird as any).y).toBe(300);
+  expect((bird as any).texture.key).toBe('bird');
+  expect((bird as any).state).toBeDefined();
     });
 
     test('should add bird to scene', () => {
@@ -62,12 +65,14 @@ describe('Bird Component', () => {
   describe('Jump Mechanics', () => {
     test('should jump when alive', () => {
       // Mock body
-      bird.body = {
+  (bird as any).body = {
         setVelocityY: jest.fn()
       } as any;
 
       bird.jump();
-      expect(bird.body.setVelocityY).toHaveBeenCalledWith(-400);
+  expect((bird as any).body.setVelocityY).toHaveBeenCalledWith(-400);
+  // State should become JUMP briefly
+  expect((bird as any).state).toBe(BirdState.JUMP);
     });
 
     test('should not jump when dead', () => {
@@ -77,7 +82,7 @@ describe('Bird Component', () => {
 
       bird.die();
       bird.jump();
-      expect(bird.body.setVelocityY).not.toHaveBeenCalled();
+  expect(((bird as any).body.setVelocityY)).not.toHaveBeenCalled();
     });
 
     test('should respect jump cooldown', () => {
@@ -87,17 +92,17 @@ describe('Bird Component', () => {
 
       mockScene.time.now = 1000;
       bird.jump();
-      expect(bird.body.setVelocityY).toHaveBeenCalledTimes(1);
+  expect(((bird as any).body.setVelocityY)).toHaveBeenCalledTimes(1);
 
       // Try to jump again immediately (within cooldown)
       mockScene.time.now = 1050;
       bird.jump();
-      expect(bird.body.setVelocityY).toHaveBeenCalledTimes(1); // Should not increase
+  expect(((bird as any).body.setVelocityY)).toHaveBeenCalledTimes(1); // Should not increase
 
       // Jump after cooldown
       mockScene.time.now = 1200;
       bird.jump();
-      expect(bird.body.setVelocityY).toHaveBeenCalledTimes(2);
+  expect(((bird as any).body.setVelocityY)).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -155,12 +160,12 @@ describe('Bird Component', () => {
     });
 
     test('should stop physics on death', () => {
-      bird.body = {
+  (bird as any).body = {
         setVelocity: jest.fn()
       } as any;
 
       bird.die();
-      expect(bird.body.setVelocity).toHaveBeenCalledWith(0, 0);
+  expect(((bird as any).body.setVelocity)).toHaveBeenCalledWith(0, 0);
     });
   });
 
