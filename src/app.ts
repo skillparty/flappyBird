@@ -53,6 +53,7 @@ let scorePanel: Phaser.GameObjects.Rectangle; // fondo del marcador
 let dayCycleTime = 0;           // acumulador para ciclo día-noche
 let stars: Phaser.GameObjects.Group; // capa de estrellas
 let birdGlow: Phaser.GameObjects.Sprite; // resplandor del pez
+let dayCycleProgress = 0;       // 0..1 progreso del ciclo día-noche
 // Audio
 let mute = false;
 let muteButton: Phaser.GameObjects.Text;
@@ -587,6 +588,7 @@ function update(this: Phaser.Scene, time: number, delta: number) {
   // Ciclo día-noche (90s ciclo completo)
   dayCycleTime += delta;
   const cycle = (dayCycleTime / 90000) % 1; // 0..1
+  dayCycleProgress = cycle;
   // Interpolamos entre mañana (azul claro) -> tarde (naranja) -> noche (azul oscuro) -> amanecer
   function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
   let r: number, g: number, bC: number;
@@ -752,6 +754,15 @@ const game = new Phaser.Game(config);
   },
   getBestMultiplier() {
     return parseFloat(localStorage.getItem('flappyBestMultiplier') || '1');
+  },
+  getCycle() {
+    return dayCycleProgress;
+  },
+  getCurrentScore() {
+    return score + coinPoints;
+  },
+  getCurrentMultiplier() {
+    return getCurrentMultiplier();
   }
 };
 
