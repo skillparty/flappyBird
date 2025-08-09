@@ -18,15 +18,15 @@
   
   <link rel="stylesheet" href="/src/index.css">
 </head>
-<body class="bg-gradient-to-br from-sky-400 via-sky-500 to-sky-600 flex justify-center items-center min-h-screen p-4">
+<body class="min-h-screen flex flex-col">
   <!-- Skip to main content link for screen readers -->
   <a href="#game-container" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-blue-600 text-white px-4 py-2 rounded z-50">
     Saltar al juego
   </a>
   
-  <div class="game-wrapper w-full max-w-4xl mx-auto" role="main">
-    <!-- Game header -->
-    <header class="mb-4">
+  <!-- Game header (top) -->
+  <div class="cabinet-wrapper flex-grow flex flex-col items-center">
+  <header class="w-full cabinet px-4 pt-4" role="banner">
       <div class="flex flex-col sm:flex-row items-center sm:items-end justify-between gap-3 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/20 shadow-lg">
         <div class="text-center sm:text-left">
           <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-yellow-300 via-amber-200 to-rose-300 drop-shadow">
@@ -52,10 +52,10 @@
         <span class="px-2 py-0.5 bg-black/25 rounded-full">Accesible</span>
         <span class="px-2 py-0.5 bg-black/25 rounded-full">Progresión</span>
       </div>
-    </header>
-    
-    <!-- Game container -->
-    <div 
+  </header>
+
+  <main class="flex-grow flex items-center justify-center px-4 py-4 w-full" role="main">
+    <div
       id="game-container" 
       class="game-container relative mx-auto bg-sky-400 rounded-lg shadow-2xl overflow-hidden"
       role="application"
@@ -88,9 +88,10 @@
         <!-- Game state changes will be announced here -->
       </div>
     </div>
-    
-    <!-- Game footer -->
-    <footer class="mt-5 text-white/70 text-[11px] md:text-xs">
+  </main>
+
+  <!-- Game footer (bottom) -->
+  <footer class="w-full cabinet px-4 pb-6 text-white/70 text-[11px] md:text-xs" role="contentinfo">
       <div class="grid md:grid-cols-3 gap-4 bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
         <div class="space-y-1">
           <h2 class="font-semibold text-white/80 text-sm">Controles</h2>
@@ -113,8 +114,8 @@
           <p class="opacity-70">Hecho con ❤️ por skillparty.</p>
         </div>
       </div>
-      <div class="mt-3 text-center opacity-60">© <span id="year"></span> Flappy Bird Clone · Código educativo</div>
-    </footer>
+    <div class="mt-3 text-center opacity-60">© <span id="year"></span> Flappy Bird Clone · Código educativo</div>
+  </footer>
   </div>
   
   <!-- Screen reader instructions -->
