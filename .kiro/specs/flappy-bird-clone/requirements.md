@@ -138,14 +138,74 @@ Este proyecto consiste en crear un clon profesional del juego Flappy Bird para l
 4. WHEN el fondo se renderiza THEN el sistema SHALL complementar la estética general del juego
 5. IF el efecto parallax afecta el rendimiento THEN el sistema SHALL priorizar la jugabilidad
 
-### Requirement 12 (Opcional)
+### Requirement 12
 
-**User Story:** Como jugador, quiero poder seleccionar diferentes personajes o skins, para personalizar mi experiencia de juego.
+**User Story:** Como jugador, quiero ver un Cheep Cheep (pez volador de Mario) en lugar del pájaro tradicional, para tener una experiencia visual nostálgica de Mario Bros.
 
 #### Acceptance Criteria
 
-1. WHEN accedo al menú THEN el sistema SHALL mostrar opciones de selección de personajes
-2. WHEN selecciono un personaje THEN el sistema SHALL aplicar el skin seleccionado en el juego
+1. WHEN el juego se carga THEN el sistema SHALL mostrar un Cheep Cheep como personaje principal
+2. WHEN el Cheep Cheep salta THEN el sistema SHALL mostrar animación de aletas batiendo
+3. WHEN el Cheep Cheep cae THEN el sistema SHALL rotar ligeramente hacia abajo como en Mario Bros
+4. WHEN el Cheep Cheep se mueve THEN el sistema SHALL mantener el estilo visual pixelado de Mario
+5. WHEN se renderiza el personaje THEN el sistema SHALL usar colores rojos y blancos característicos del Cheep Cheep
+
+### Requirement 13
+
+**User Story:** Como jugador, quiero recolectar monedas durante el vuelo, para obtener puntos extra y sentir la experiencia clásica de Mario Bros.
+
+#### Acceptance Criteria
+
+1. WHEN se generan obstáculos THEN el sistema SHALL colocar monedas doradas entre algunos tubos
+2. WHEN el Cheep Cheep toca una moneda THEN el sistema SHALL incrementar la puntuación en 10 puntos
+3. WHEN se recolecta una moneda THEN el sistema SHALL reproducir el sonido clásico de moneda de Mario
+4. WHEN se recolecta una moneda THEN el sistema SHALL mostrar una animación de brillo y desaparición
+5. WHEN se muestran las monedas THEN el sistema SHALL usar el sprite dorado giratorio clásico de Mario
+
+### Requirement 14
+
+**User Story:** Como jugador, quiero ver un fondo estilo Mario Bros con nubes y colinas, para sumergirme en el mundo de Mario mientras juego.
+
+#### Acceptance Criteria
+
+1. WHEN el juego se ejecuta THEN el sistema SHALL mostrar un fondo azul cielo estilo Mario Bros
+2. WHEN se renderiza el fondo THEN el sistema SHALL incluir nubes blancas pixeladas flotando
+3. WHEN se muestra el paisaje THEN el sistema SHALL incluir colinas verdes en el fondo
+4. WHEN las nubes se mueven THEN el sistema SHALL usar efecto parallax a diferentes velocidades
+5. WHEN se renderiza el escenario THEN el sistema SHALL mantener la paleta de colores clásica de Mario Bros
+
+### Requirement 15
+
+**User Story:** Como jugador, quiero escuchar sonidos auténticos de Mario Bros, para tener una experiencia sonora nostálgica y familiar.
+
+#### Acceptance Criteria
+
+1. WHEN el Cheep Cheep salta THEN el sistema SHALL reproducir un sonido de salto estilo Mario
+2. WHEN se recolecta una moneda THEN el sistema SHALL reproducir el sonido clásico "ding" de moneda
+3. WHEN ocurre una colisión THEN el sistema SHALL reproducir el sonido de muerte/daño de Mario
+4. WHEN se incrementa la puntuación por pasar tubos THEN el sistema SHALL reproducir un sonido de puntuación
+5. IF el audio está deshabilitado THEN el sistema SHALL funcionar normalmente sin sonidos
+
+### Requirement 16 (Futuro)
+
+**User Story:** Como jugador, quiero poder recolectar una estrella de poder que me haga invencible temporalmente, para tener momentos de emoción y ventaja estratégica.
+
+#### Acceptance Criteria
+
+1. WHEN aparece una estrella THEN el sistema SHALL mostrarla girando con brillo dorado
+2. WHEN el Cheep Cheep toca la estrella THEN el sistema SHALL activar modo invencible por 10 segundos
+3. WHEN está en modo invencible THEN el Cheep Cheep SHALL parpadear con colores arcoíris
+4. WHEN está invencible THEN el sistema SHALL permitir pasar a través de tubos sin colisionar
+5. WHEN se activa la estrella THEN el sistema SHALL reproducir la música de invencibilidad de Mario
+
+### Requirement 17 (Opcional - Personajes)
+
+**User Story:** Como jugador, quiero poder seleccionar entre diferentes personajes de Mario Bros, para personalizar mi experiencia de juego.
+
+#### Acceptance Criteria
+
+1. WHEN accedo al menú THEN el sistema SHALL mostrar opciones: Cheep Cheep, Lakitu, Blooper
+2. WHEN selecciono un personaje THEN el sistema SHALL aplicar el sprite y animaciones correspondientes
 3. WHEN cambio de personaje THEN el sistema SHALL guardar mi selección en localStorage
 4. WHEN el juego se carga THEN el sistema SHALL recordar mi último personaje seleccionado
-5. WHEN se muestran las opciones THEN el sistema SHALL tener al menos 2-3 skins diferentes disponibles
+5. WHEN se muestran las opciones THEN cada personaje SHALL tener características visuales únicas de Mario Bros

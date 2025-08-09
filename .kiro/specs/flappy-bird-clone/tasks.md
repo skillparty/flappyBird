@@ -110,3 +110,52 @@
   - Implementar sistema de configuración de usuario (volumen, controles)
   - Crear documentación de usuario y README con instrucciones de ejecución
   - _Requirements: 1.1, 6.4, 8.3, 9.1_
+
+## Nuevas Tareas - Interfaz Mario Bros
+
+- [x] 17. Implementar Cheep Cheep como personaje principal
+  - Crear sprite del Cheep Cheep con colores rojos y blancos característicos
+  - Implementar animación de aletas batiendo durante el salto
+  - Añadir rotación hacia abajo cuando cae, estilo Mario Bros
+  - Aplicar estilo visual pixelado consistente con Mario
+  - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5_
+
+- [x] 18. Desarrollar sistema de monedas recolectables
+  - Crear sprite de moneda dorada giratorio clásico de Mario
+  - Implementar generación aleatoria de monedas entre tubos
+  - Añadir detección de colisión para recolección de monedas
+  - Crear sistema de puntuación: +10 puntos por moneda
+  - Implementar animación de brillo y desaparición al recolectar
+  - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5_
+
+- [x] 19. Crear fondo estilo Mario Bros con parallax
+  - Implementar fondo azul cielo característico de Mario Bros
+  - Crear sprites de nubes blancas pixeladas flotantes
+  - Añadir colinas verdes en el fondo con estilo Mario
+  - Implementar efecto parallax con diferentes velocidades para capas
+  - Aplicar paleta de colores clásica de Mario Bros
+  - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5_
+
+- [ ] 20. Integrar sistema de audio estilo Mario Bros
+  - Implementar sonido de salto estilo Mario para el Cheep Cheep
+  - Añadir sonido clásico "ding" para recolección de monedas
+  - Crear sonido de muerte/daño de Mario para colisiones
+  - Implementar sonido de puntuación para pasar tubos
+  - Asegurar funcionamiento sin audio cuando esté deshabilitado
+  - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5_
+
+- [ ] 21. Optimizar rendimiento y pulir experiencia Mario Bros
+  - Optimizar sprites y animaciones para mantener 60 FPS
+  - Ajustar física del Cheep Cheep para sentirse auténtico
+  - Balancear frecuencia de aparición de monedas
+  - Crear transiciones suaves entre elementos visuales
+  - Implementar sistema de configuración para elementos Mario Bros
+  - _Requirements: 8.4, 12.4, 13.4, 14.4_
+
+- [ ] 22. Preparar base para power-ups futuros (Estrella)
+  - Crear estructura base para sistema de power-ups
+  - Implementar interfaces para efectos temporales
+  - Diseñar sistema de estados del personaje (normal/invencible)
+  - Crear base para animaciones de power-ups
+  - Documentar arquitectura para futura implementación de estrella
+  - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5_
